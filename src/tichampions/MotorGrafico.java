@@ -7,6 +7,7 @@ import java.io.File;
 import javax.imageio.ImageIO;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Collections;
 
 public class MotorGrafico extends JPanel implements ActionListener, MouseListener {
 
@@ -21,20 +22,23 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
     int qtdJogadores = 1, jogadorTurnoAtual = 0; boolean turnoInimigo = false;
     
     int heroiSelecionadoUI = -1, classeSelecionadaUI = -1;
+    
+    // VARIÁVEIS DE CONTROLE
     boolean escolhendoAlvo = false, menuItensAberto = false, menuStatusAberto = false, subMenuItem = false;
+    boolean mostrandoTutorial = false, dropResolucao = false, turnoExtraLanHouse = false;
     Item itemFocado = null; 
     
-    // Novo Sistema de LOG LATERAL
     ArrayList<String> logBatalha = new ArrayList<>();
-    Timer timerEsperaAcao; // Pausa para a animação acontecer antes do turno passar
-    boolean bloqueiaClique = false;
+    Timer timerEsperaAcao; boolean bloqueiaClique = false;
 
     int andarTotal = 1, batalhasSeguidas = 0; boolean lojaLendaria = false;
     Random rng = new Random();
 
-    Image bgMenu, bgCombate, bgLoja, spriteMarcao, spriteDiegao;
+    Image bgMenu, bgLoja, spriteMarcao, spriteDiegao;
+    Image[] bgsCombate = new Image[3]; 
     Image imgMatheus, imgLucas, imgElvis;
-    Image[] imgInimigos = new Image[5]; Image[] imgItens = new Image[5];
+    Image[] imgInimigos = new Image[5]; 
+    Image[] imgItens = new Image[6]; 
     Item[] itensLojaAtual = new Item[3];
 
     public MotorGrafico() {
@@ -49,61 +53,74 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
 
     private void carregarRecursos() {
         try {
-            bgMenu = ImageIO.read(new File("sprites/backgrounds/bg_menu.png")); bgCombate = ImageIO.read(new File("sprites/backgrounds/bg_combate.png"));
-            bgLoja = ImageIO.read(new File("sprites/backgrounds/bg_loja.png")); spriteMarcao = ImageIO.read(new File("sprites/npc/marcao.png"));
-            spriteDiegao = ImageIO.read(new File("sprites/npc/diegao.png")); imgMatheus = ImageIO.read(new File("sprites/personagens/matheus.png"));
-            imgLucas = ImageIO.read(new File("sprites/personagens/lucas.png")); imgElvis = ImageIO.read(new File("sprites/personagens/elvis.png"));
+            bgMenu = ImageIO.read(new File("sprites/backgrounds/bg_menu.png")); 
+            bgLoja = ImageIO.read(new File("sprites/backgrounds/bg_loja.png")); 
+            bgsCombate[0] = ImageIO.read(new File("sprites/backgrounds/bg_combate1.png"));
+            bgsCombate[1] = ImageIO.read(new File("sprites/backgrounds/bg_combate2.png"));
+            bgsCombate[2] = ImageIO.read(new File("sprites/backgrounds/bg_combate3.png"));
+            
+            spriteMarcao = ImageIO.read(new File("sprites/npc/marcao.png")); spriteDiegao = ImageIO.read(new File("sprites/npc/diegao.png")); 
+            imgMatheus = ImageIO.read(new File("sprites/personagens/matheus.png")); imgLucas = ImageIO.read(new File("sprites/personagens/lucas.png")); 
+            imgElvis = ImageIO.read(new File("sprites/personagens/elvis.png"));
+            
             imgInimigos[0] = ImageIO.read(new File("sprites/inimigos/estagiario.png")); imgInimigos[1] = ImageIO.read(new File("sprites/inimigos/sql_injection.png"));
             imgInimigos[2] = ImageIO.read(new File("sprites/inimigos/hardware_curto.png")); imgInimigos[3] = ImageIO.read(new File("sprites/inimigos/boss_arquiteto.png"));
-            imgItens[0] = ImageIO.read(new File("sprites/itens/cafe.png")); imgItens[1] = ImageIO.read(new File("sprites/itens/placa_video.png"));
+            
+            imgItens[0] = ImageIO.read(new File("sprites/itens/cafe.png")); 
+            imgItens[1] = ImageIO.read(new File("sprites/itens/placa_video.png"));
             imgItens[2] = ImageIO.read(new File("sprites/itens/nobreak.png"));
+            imgItens[3] = ImageIO.read(new File("sprites/itens/ferro_solda.png"));
+            imgItens[4] = ImageIO.read(new File("sprites/itens/camisa_evento.png"));
+            imgItens[5] = ImageIO.read(new File("sprites/itens/memoria_enferrujada.png"));
         } catch (Exception e) {}
     }
 
-    // Adiciona msg na lista e dá um delay para a pessoa ler
     private void addLog(String msg, Runnable proximaAcao) {
         logBatalha.add(msg);
-        if (logBatalha.size() > 2) logBatalha.remove(0); // Mantém só as últimas 2 mensagens
+        if (logBatalha.size() > 5) logBatalha.remove(0); // Agora guarda até 5 linhas
         
         bloqueiaClique = true;
         menuItensAberto = false; menuStatusAberto = false; subMenuItem = false;
         
         if (timerEsperaAcao != null && timerEsperaAcao.isRunning()) timerEsperaAcao.stop();
-        timerEsperaAcao = new Timer(1200, e -> {
-            bloqueiaClique = false;
-            if (proximaAcao != null) proximaAcao.run();
-            repaint();
+        timerEsperaAcao = new Timer(1500, e -> {
+            bloqueiaClique = false; if (proximaAcao != null) proximaAcao.run(); repaint();
         });
         timerEsperaAcao.setRepeats(false); timerEsperaAcao.start();
     }
 
     private void gerarItensLoja() {
         int power = 5 + (andarTotal * 2);
-        itensLojaAtual[0] = new Item("Café Forte", "Cura " + (20+power*2) + " HP", 0, 20+power*2, imgItens[0]);
-        itensLojaAtual[1] = new Item("Placa RTX", "+" + power + " Hardware", 1, power, imgItens[1]);
-        itensLojaAtual[2] = new Item("Nobreak", "+" + power + " Manutenção", 2, power, imgItens[2]);
+        ArrayList<Item> pool = new ArrayList<>();
+        pool.add(new Item("Café Forte", "Cura " + (20+power*2) + " HP", 0, 20+power*2, imgItens[0]));
+        pool.add(new Item("Placa RTX", "+" + power + " Hardware", 1, power, imgItens[1]));
+        pool.add(new Item("Nobreak", "+" + power + " Manutenção", 2, power, imgItens[2]));
+        pool.add(new Item("Ferro de Solda", "+" + (power+3) + " Hardware", 1, power+3, imgItens[3]));
+        pool.add(new Item("Camisa de Evento", "+" + power + " Firewall", 4, power, imgItens[4]));
+        pool.add(new Item("Memória Velha", "+" + (power+5) + " Software", 3, power+5, imgItens[5]));
+
+        Collections.shuffle(pool, rng);
+        itensLojaAtual[0] = pool.get(0); itensLojaAtual[1] = pool.get(1); itensLojaAtual[2] = pool.get(2);
     }
 
     private void gerarAndarDeCombate() {
         inimigos.clear(); batalhasSeguidas++;
         if (batalhasSeguidas >= 5) {
-            inimigos.add(new InimigoGUI("BOSS: Arquiteto", new Status(300+(andarTotal*10), 20+andarTotal, 0, 15, 15), 3, 0));
+            inimigos.add(new InimigoGUI(andarTotal, new Status(300+(andarTotal*10), 20+andarTotal, 0, 15, 15), 3, 0));
             batalhasSeguidas = 0;
         } else {
             int qInimigos = (rng.nextInt(100) < 10) ? qtdJogadores + rng.nextInt(2) + 1 : qtdJogadores;
             for(int i=0; i < qInimigos; i++) {
                 int idSpr = rng.nextInt(3); int tAtaque = (idSpr == 1) ? 1 : 0; 
-                inimigos.add(new InimigoGUI("Bug Lv." + andarTotal, new Status(40+(andarTotal*10), 10+andarTotal, 10+andarTotal, 2, 2), idSpr, tAtaque));
+                inimigos.add(new InimigoGUI(andarTotal, new Status(40+(andarTotal*10), 10+andarTotal, 10+andarTotal, 2, 2), idSpr, tAtaque));
             }
         }
-        logBatalha.clear();
+        logBatalha.clear(); turnoExtraLanHouse = false;
         for(HeroiGUI h : party) { 
             h.skillUsadaNoAndar = false; h.fugiuDestaBatalha = false; h.tentouFugirNoAndar = false; 
-            logBatalha.add(h.aplicarPassivaTurno()); // Passiva inicial no log
+            logBatalha.add(h.aplicarPassivaTurno()); 
         }
-        
-        jogadorTurnoAtual = 0; turnoInimigo = false;
-        estadoAtual = Estado.COMBATE; verificarTurnoValido();
+        jogadorTurnoAtual = 0; turnoInimigo = false; estadoAtual = Estado.COMBATE; verificarTurnoValido();
     }
 
     private void avancarTurno() {
@@ -111,24 +128,36 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
         escolhendoAlvo = false; 
         
         if (inimigos.isEmpty()) {
-            for(HeroiGUI h : party) h.fugiuNaUltima = false;
-            andarTotal++; lojaLendaria = (rng.nextInt(100) < 5); gerarItensLoja();
-            addLog("Batalha Vencida! Avançando...", () -> estadoAtual = Estado.LOJA); return;
+            for(HeroiGUI h : party) if(!h.fugiuDestaBatalha) h.fugiuNaUltima = false; 
+            andarTotal++; lojaLendaria = (batalhasSeguidas == 0); 
+            gerarItensLoja();
+            addLog("Batalha Vencida! Avançando...", () -> { prepararLoja(); estadoAtual = Estado.LOJA; }); return;
         }
         
         int vivos = 0, fugiram = 0;
         for(HeroiGUI h : party) { if(h.status.hp > 0 && !h.fugiuDestaBatalha) vivos++; if(h.fugiuDestaBatalha) fugiram++; }
         
         if (vivos == 0) {
-            if (fugiram > 0) addLog("Os sobreviventes fugiram para a Loja!", () -> { gerarItensLoja(); estadoAtual = Estado.LOJA; });
+            if (fugiram > 0) addLog("Todos fugiram! Indo à Loja...", () -> { gerarItensLoja(); prepararLoja(); estadoAtual = Estado.LOJA; });
             else addLog("GAME OVER! A equipe foi derrotada.", () -> estadoAtual = Estado.GAME_OVER);
             return;
         }
 
         if (!turnoInimigo) {
-            jogadorTurnoAtual++;
-            if (jogadorTurnoAtual >= party.size()) { turnoInimigo = true; executarTurnoInimigo(); } else verificarTurnoValido();
+            if (turnoExtraLanHouse) {
+                turnoExtraLanHouse = false; 
+                addLog(party.get(jogadorTurnoAtual).nome + " ganhou +1 Ficha! Turno Extra!", null);
+            } else {
+                jogadorTurnoAtual++;
+                if (jogadorTurnoAtual >= party.size()) { turnoInimigo = true; executarTurnoInimigo(); } 
+                else verificarTurnoValido();
+            }
         } else { turnoInimigo = false; jogadorTurnoAtual = 0; verificarTurnoValido(); }
+    }
+
+    private void prepararLoja() {
+        jogadorTurnoAtual = 0;
+        while(jogadorTurnoAtual < party.size() && party.get(jogadorTurnoAtual).fugiuDestaBatalha) jogadorTurnoAtual++;
     }
 
     private void verificarTurnoValido() {
@@ -142,15 +171,29 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
         for(HeroiGUI h : party) { if(h.status.hp > 0 && !h.fugiuDestaBatalha) alvosVivos.add(h); }
         if(alvosVivos.isEmpty()) { avancarTurno(); return; }
 
-        InimigoGUI atacante = inimigos.get(0);
-        HeroiGUI alvo = alvosVivos.get(rng.nextInt(alvosVivos.size()));
-        addLog(atacante.atacar(alvo), () -> avancarTurno());
+        for(InimigoGUI atacante : inimigos) {
+            if(alvosVivos.isEmpty()) break;
+            HeroiGUI alvo = alvosVivos.get(rng.nextInt(alvosVivos.size()));
+            atacante.ativarAtaqueAnim(); 
+            logBatalha.add(atacante.atacar(alvo));
+            if(logBatalha.size() > 5) logBatalha.remove(0);
+            if(alvo.status.hp <= 0) alvosVivos.remove(alvo);
+        }
+        
+        // Bloqueia a tela por 2 segundos para dar tempo de ler todos os ataques
+        bloqueiaClique = true;
+        if (timerEsperaAcao != null && timerEsperaAcao.isRunning()) timerEsperaAcao.stop();
+        timerEsperaAcao = new Timer(2000, e -> { bloqueiaClique = false; avancarTurno(); repaint(); });
+        timerEsperaAcao.setRepeats(false); timerEsperaAcao.start();
     }
 
     @Override
     public void actionPerformed(ActionEvent e) { 
         tempoAnimacao += 0.05; 
-        for(InimigoGUI ini : inimigos) { if(ini.timerPiscar > 0) ini.timerPiscar--; } // Controla a piscada do hit
+        for(InimigoGUI ini : inimigos) { 
+            if(ini.timerPiscar > 0) ini.timerPiscar--; 
+            if(ini.timerAtacar > 0) ini.timerAtacar--;
+        } 
         repaint(); 
     }
 
@@ -169,31 +212,65 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
         }
     }
 
+    private void desenharBotaoHover(Graphics2D g, String t, int x, int y, int w, int h, boolean flutuar) {
+        boolean hover = (!bloqueiaClique && mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h);
+        int ofsY = (hover && flutuar) ? (int)(Math.sin(tempoAnimacao) * 5) : 0;
+        
+        g.setColor(hover ? new Color(70, 70, 70) : new Color(30, 30, 30)); g.fillRect(x, y - ofsY, w, h);
+        g.setColor(hover ? Color.WHITE : Color.GRAY); g.setStroke(new BasicStroke(hover ? 4 : 2)); g.drawRect(x, y - ofsY, w, h);
+        g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 18));
+        FontMetrics fm = g.getFontMetrics(); g.drawString(t, x + (w - fm.stringWidth(t)) / 2, (y - ofsY) + ((h - fm.getHeight()) / 2) + fm.getAscent());
+    }
+    
+    private void desenharBotaoSprite(Graphics2D g, Image img, int x, int y, int w, int h, boolean selecionado) {
+        if (img != null) g.drawImage(img, x, y, w, h, null); else { g.setColor(Color.DARK_GRAY); g.fillRect(x, y, w, h); }
+        if (selecionado) { g.setColor(Color.WHITE); g.setStroke(new BasicStroke(4)); g.drawRect(x, y, w, h); }
+    }
+    
     private void desenharHUDGlobal(Graphics2D g, boolean mostrarVoltar) {
-        if(mostrarVoltar) desenharBotao(g, "VOLTAR", 20, 20, 150, 40, false);
-        desenharBotao(g, "SAIR", 1100, 20, 150, 40, false);
+        if(mostrarVoltar) desenharBotaoHover(g, "VOLTAR", 20, 640, 150, 40, true);
+        desenharBotaoHover(g, "SAIR", 1100, 20, 150, 40, true);
     }
 
-    // --- MÉTODOS DE DESENHO ---
     private void desenharMenu(Graphics2D g) {
         if (bgMenu != null) g.drawImage(bgMenu, 0, 0, 1280, 720, null); else { g.setColor(Color.DARK_GRAY); g.fillRect(0, 0, 1280, 720); }
         int btnY = 350 + (int)(Math.sin(tempoAnimacao) * 10);
-        desenharBotao(g, "INICIAR JOGO", 540, btnY, 200, 60, false); desenharBotao(g, "OPÇÕES", 540, btnY + 80, 200, 60, false);
-        desenharBotao(g, "SAIR", 540, btnY + 160, 200, 60, false);
+        desenharBotaoHover(g, "INICIAR JOGO", 540, btnY, 200, 60, true); desenharBotaoHover(g, "OPÇÕES", 540, btnY + 80, 200, 60, true);
+        desenharBotaoHover(g, "SAIR", 540, btnY + 160, 200, 60, true);
     }
     
     private void desenharOpcoes(Graphics2D g) {
         g.setColor(Color.BLACK); g.fillRect(0, 0, 1280, 720); g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 40));
-        g.drawString("MENU DE OPÇÕES", 450, 100);
-        desenharBotao(g, "Resolução 800x600", 500, 200, 280, 60, false); desenharBotao(g, "Resolução 1280x720", 500, 300, 280, 60, false);
-        desenharBotao(g, "Resolução 1920x1080", 500, 400, 280, 60, false); desenharBotao(g, "VOLTAR", 540, 550, 200, 60, false);
+        g.drawString("MENU DE OPÇÕES", 450, 100); desenharHUDGlobal(g, true);
+        
+        desenharBotaoHover(g, "TUTORIAL", 500, 200, 280, 60, true);
+        desenharBotaoHover(g, "RESOLUÇÃO ▼", 500, 300, 280, 60, true);
+        
+        if (dropResolucao) {
+            desenharBotaoHover(g, "800x600", 500, 360, 280, 40, false);
+            desenharBotaoHover(g, "1280x720", 500, 400, 280, 40, false);
+            desenharBotaoHover(g, "1920x1080", 500, 440, 280, 40, false);
+        }
+        
+        if (mostrandoTutorial) {
+            g.setColor(new Color(0,0,0,230)); g.fillRect(200, 150, 880, 450); g.setColor(Color.WHITE); g.drawRect(200, 150, 880, 450);
+            g.setFont(new Font("Arial", Font.BOLD, 26)); g.drawString("TUTORIAL - MECÂNICAS DO JOGO", 400, 200);
+            g.setFont(new Font("Arial", Font.PLAIN, 20));
+            g.drawString("• HARDWARE: Dano Físico. A defesa contra ele é a sua Manutenção.", 250, 250);
+            g.drawString("• SOFTWARE: Dano Mágico. A defesa contra ele é o seu Firewall.", 250, 290);
+            g.drawString("• ITENS DA LOJA: Máx de 3 Equipamentos instalados ao mesmo tempo.", 250, 330);
+            g.drawString("• CONSUMÍVEIS: Você só pode carregar 1 consumível de uso por vez.", 250, 370);
+            g.drawString("• FUGIR: Você pula o turno e perde -50% de Ataque. Fujões não vão na loja.", 250, 410);
+            
+            desenharBotaoHover(g, "FECHAR TUTORIAL", 500, 500, 280, 60, true);
+        }
     }
     
     private void desenharModoJogo(Graphics2D g) {
         g.setColor(Color.BLACK); g.fillRect(0, 0, 1280, 720); g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 40));
         g.drawString("QUANTOS JOGADORES?", 400, 200); desenharHUDGlobal(g, true);
-        desenharBotao(g, "1 JOGADOR", 540, 300, 200, 60, false); desenharBotao(g, "2 JOGADORES", 540, 400, 200, 60, false);
-        desenharBotao(g, "3 JOGADORES", 540, 500, 200, 60, false);
+        desenharBotaoHover(g, "1 JOGADOR", 540, 300, 200, 60, true); desenharBotaoHover(g, "2 JOGADORES", 540, 400, 200, 60, true);
+        desenharBotaoHover(g, "3 JOGADORES", 540, 500, 200, 60, true);
     }
 
     private void desenharSelecaoPersonagem(Graphics2D g) {
@@ -201,49 +278,47 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
         g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 40));
         g.drawString("SELECIONE O PLAYER " + (party.size() + 1), 400, 100);
         
-        desenharBotaoSprite(g, imgMatheus, 250, 200, 159, 300, heroiSelecionadoUI == 0);
-        desenharBotaoSprite(g, imgLucas, 550, 200, 159, 300, heroiSelecionadoUI == 1);
-        desenharBotaoSprite(g, imgElvis, 850, 200, 159, 300, heroiSelecionadoUI == 2);
-        
-        g.setFont(new Font("Arial", Font.BOLD, 24));
-        g.drawString("Matheus", 280, 530); g.drawString("Lucas", 590, 530); g.drawString("Elvis", 890, 530);
+        Image[] imgs = {imgMatheus, imgLucas, imgElvis}; String[] nomes = {"Matheus", "Lucas", "Elvis"}; int[] posX = {250, 550, 850};
+        for(int i=0; i<3; i++) {
+            boolean hover = (!bloqueiaClique && mouseX > posX[i] && mouseX < posX[i]+159 && mouseY > 200 && mouseY < 500);
+            int ofs = hover ? (int)(Math.sin(tempoAnimacao)*5) : 0;
+            if (imgs[i] != null) g.drawImage(imgs[i], posX[i], 200 - ofs, 159, 300, null); else { g.setColor(Color.BLUE); g.fillRect(posX[i], 200 - ofs, 159, 300); }
+            if (heroiSelecionadoUI == i) { g.setColor(Color.WHITE); g.setStroke(new BasicStroke(4)); g.drawRect(posX[i], 200 - ofs, 159, 300); }
+            g.setFont(new Font("Arial", Font.BOLD, 24)); g.drawString(nomes[i], posX[i]+30, 530 - ofs);
+        }
         
         if (heroiSelecionadoUI != -1) {
             g.setFont(new Font("Arial", Font.PLAIN, 18));
             if(heroiSelecionadoUI == 0) { g.drawString("HP: 80 | Hard: 5 | Soft: 25", 220, 560); g.drawString("Passiva: Alterna Buffs", 220, 590); }
             if(heroiSelecionadoUI == 1) { g.drawString("HP: 120 | Hard: 15 | Soft: 2", 520, 560); g.drawString("Passiva: Buff Defesa Início", 520, 590); }
             if(heroiSelecionadoUI == 2) { g.drawString("HP: 100 | Hard: 20 | Soft: 5", 820, 560); g.drawString("Passiva: Sobrevive a 0 HP", 820, 590); }
-            desenharBotao(g, "AVANÇAR", 1000, 600, 200, 60, false);
+            desenharBotaoHover(g, "AVANÇAR", 1000, 600, 200, 60, true);
         }
     }
     
     private void desenharSelecaoClasse(Graphics2D g) {
         g.setColor(Color.BLACK); g.fillRect(0, 0, 1280, 720); desenharHUDGlobal(g, true);
-        g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 40));
-        g.drawString("ESCOLHA SUA CLASSE", 420, 100);
+        g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 40)); g.drawString("ESCOLHA SUA CLASSE", 420, 100);
         
-        desenharBotao(g, "Infra", 200, 200, 250, 60, classeSelecionadaUI == 0);
-        desenharBotao(g, "Java Champion", 500, 200, 250, 60, classeSelecionadaUI == 1);
-        desenharBotao(g, "HackerMan", 800, 200, 250, 60, classeSelecionadaUI == 2);
-        desenharBotao(g, "LanHouse", 350, 300, 250, 60, classeSelecionadaUI == 3);
-        desenharBotao(g, "Professor", 650, 300, 250, 60, classeSelecionadaUI == 4);
+        desenharBotaoHover(g, "Infra", 200, 200, 250, 60, true); desenharBotaoHover(g, "Java Champion", 500, 200, 250, 60, true);
+        desenharBotaoHover(g, "HackerMan", 800, 200, 250, 60, true); desenharBotaoHover(g, "LanHouse", 350, 300, 250, 60, true);
+        desenharBotaoHover(g, "Professor", 650, 300, 250, 60, true);
 
         if (classeSelecionadaUI != -1) {
-            g.setFont(new Font("Arial", Font.PLAIN, 20));
-            ClasseRPG cTemp = null;
+            g.setFont(new Font("Arial", Font.PLAIN, 20)); ClasseRPG cTemp = null;
             if(classeSelecionadaUI==0) cTemp = new Infra(); if(classeSelecionadaUI==1) cTemp = new JavaChampion();
             if(classeSelecionadaUI==2) cTemp = new HackerMan(); if(classeSelecionadaUI==3) cTemp = new DonoLanHouse();
             if(classeSelecionadaUI==4) cTemp = new Professor();
             
             g.drawString("Atributos: " + cTemp.descAtributos, 200, 450); g.drawString("Skill Ativa: " + cTemp.descSkill, 200, 490);
-            desenharBotao(g, "CONFIRMAR", 1000, 600, 200, 60, false);
+            desenharBotaoHover(g, "CONFIRMAR", 1000, 600, 200, 60, true);
         }
     }
 
     private void desenharGameOver(Graphics2D g) {
         g.setColor(new Color(100, 0, 0)); g.fillRect(0, 0, 1280, 720);
         g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 60)); g.drawString("GAME OVER", 450, 300);
-        desenharBotao(g, "VOLTAR AO MENU", 500, 500, 280, 60, false);
+        desenharBotaoHover(g, "VOLTAR AO MENU", 500, 500, 280, 60, true);
     }
     
     private void desenharMiniInventario(Graphics2D g, HeroiGUI h) {
@@ -251,45 +326,49 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
         g.setColor(Color.WHITE); g.setStroke(new BasicStroke(2)); g.drawRect(20, 540, 60, 60); g.drawRect(90, 540, 60, 60); g.drawRect(160, 540, 60, 60);
         g.setFont(new Font("Arial", Font.PLAIN, 10)); g.drawString("ARMA", 30, 615); g.drawString("ARMAD.", 95, 615); g.drawString("ATIVO", 170, 615);
         
-        // Desenha a ÍCONE DO ITEM dentro do quadradinho!
         if (h.armaEquipada != null && h.armaEquipada.icone != null) g.drawImage(h.armaEquipada.icone, 22, 542, 56, 56, null); 
         if (h.armaduraEquipada != null && h.armaduraEquipada.icone != null) g.drawImage(h.armaduraEquipada.icone, 92, 542, 56, 56, null); 
-        if (h.ativoEquipado != null && h.ativoEquipado.icone != null) g.drawImage(h.ativoEquipado.icone, 162, 542, 56, 56, null); 
+        
+        Item cons = h.mochila.stream().filter(it -> it.tipo == 0).findFirst().orElse(null);
+        if (cons != null && cons.icone != null) g.drawImage(cons.icone, 162, 542, 56, 56, null);
     }
 
-    private void desenharLogBatalha(Graphics2D g) {
+    private void desenharLogLateral(Graphics2D g) {
         if(logBatalha.isEmpty()) return;
-        g.setColor(new Color(0, 0, 0, 180)); g.fillRect(820, 380, 440, 120);
-        g.setColor(Color.WHITE); g.drawRect(820, 380, 440, 120);
-        g.setFont(new Font("Arial", Font.BOLD, 18));
-        
-        int yText = 410;
-        for(String msg : logBatalha) { g.drawString("> " + msg, 830, yText); yText += 40; }
+        g.setColor(new Color(0, 0, 0, 200)); g.fillRect(800, 50, 460, 160);
+        g.setColor(Color.WHITE); g.drawRect(800, 50, 460, 160); g.setFont(new Font("Arial", Font.PLAIN, 12)); 
+        int yText = 75;
+        for(String msg : logBatalha) { g.drawString("> " + msg, 810, yText); yText += 25; }
     }
 
     private void desenharCombate(Graphics2D g) {
-        if (bgCombate != null) g.drawImage(bgCombate, 0, 0, 1280, 720, null); else { g.setColor(new Color(50, 0, 0)); g.fillRect(0, 0, 1280, 720); }
+        int bgIndex = ((andarTotal - 1) / 4) % 3; Image bgAtual = bgsCombate[bgIndex];
+        if (bgAtual != null) g.drawImage(bgAtual, 0, 0, 1280, 720, null); 
+        else { g.setColor(bgIndex==0?new Color(50,0,0) : bgIndex==1?new Color(0,50,0) : new Color(0,0,50)); g.fillRect(0, 0, 1280, 720); }
 
         for(int i=0; i < inimigos.size(); i++) {
             InimigoGUI ini = inimigos.get(i);
             int x = 1280/(inimigos.size()+1) * (i+1) - 140;
             
-            // Lógica do PISCAR! Se tiver tomando dano, não desenha (pisca)
-            if (ini.timerPiscar % 10 < 5) {
+            boolean mouseHoverIni = (escolhendoAlvo && mouseX > x && mouseX < x+280 && mouseY > 150 && mouseY < 430);
+            int floatY = mouseHoverIni ? (int)(Math.sin(tempoAnimacao) * 5) : 0;
+            int animAtaqueX = (ini.timerAtacar > 0) ? (int)(Math.sin(ini.timerAtacar) * 15) : 0; 
+            
+            if (ini.timerPiscar == 0 || (ini.timerPiscar / 5) % 2 == 0) {
                 Image spr = imgInimigos[ini.spriteId];
-                if (spr != null) g.drawImage(spr, x, 150, 280, 280, null); else { g.setColor(Color.RED); g.fillRoundRect(x, 150, 280, 280, 20, 20); }
+                if (spr != null) g.drawImage(spr, (x + animAtaqueX), (150 - floatY), 280, 280, null); 
+                else { g.setColor(Color.RED); g.fillRoundRect((x + animAtaqueX), 150 - floatY, 280, 280, 20, 20); }
             }
             
-            g.setColor(Color.BLACK); g.fillRect(x, 100, 280, 40);
+            g.setColor(Color.BLACK); g.fillRect(x + animAtaqueX, 100 - floatY, 280, 40);
             g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 16));
             String tipoDano = (ini.tipoAtaque == 1) ? "[SOFTWARE]" : "[HARDWARE]";
-            g.drawString(tipoDano + " " + ini.nome + " ("+ini.status.hp+" HP)", x + 10, 125);
-            
-            if(escolhendoAlvo) { g.setColor(Color.YELLOW); g.setStroke(new BasicStroke(3)); g.drawRect(x, 150, 280, 280); }
+            g.drawString(tipoDano + " " + ini.nome + " ("+ini.status.hp+" HP)", (x + animAtaqueX) + 10, 125 - floatY);
+            if(escolhendoAlvo) { g.setColor(Color.YELLOW); g.setStroke(new BasicStroke(3)); g.drawRect(x, 150 - floatY, 280, 280); }
         }
 
         g.setColor(Color.BLACK); g.fillRect(0, 520, 1280, 200);
-        desenharLogBatalha(g); // Mostra o log lateral
+        desenharLogLateral(g); 
         
         if (!turnoInimigo && !party.isEmpty() && !bloqueiaClique) {
             HeroiGUI h = party.get(jogadorTurnoAtual);
@@ -302,92 +381,93 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
             desenharMiniInventario(g, h);
 
             if (escolhendoAlvo) {
-                g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 30));
-                g.drawString("SELECIONE O ALVO CLICANDO NO INIMIGO", 350, 630);
-                desenharBotao(g, "CANCELAR", 1050, 560, 180, 80, false);
+                g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 30)); g.drawString("SELECIONE O ALVO!", 350, 630);
+                desenharBotaoHover(g, "CANCELAR", 1050, 560, 180, 80, true);
             }
             else if (menuItensAberto) {
-                for(int i=0; i<Math.min(h.mochila.size(), 4); i++) { 
-                    desenharBotao(g, h.mochila.get(i).nome, 250 + (i*160), 540, 150, 60, itemFocado == h.mochila.get(i));
-                }
+                for(int i=0; i<Math.min(h.mochila.size(), 4); i++) desenharBotaoHover(g, h.mochila.get(i).nome, 250 + (i*160), 540, 150, 60, true);
                 
                 if (subMenuItem && itemFocado != null) {
                     g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.PLAIN, 16)); g.drawString("Efeito: " + itemFocado.descricao, 250, 630);
-                    desenharBotao(g, itemFocado.tipo == 0 ? "USAR" : "EQUIPAR", 250, 650, 120, 40, false);
-                    desenharBotao(g, "DESCARTAR", 390, 650, 120, 40, false);
-                    desenharBotao(g, "CANCELAR", 530, 650, 120, 40, false);
+                    boolean isEquipado = (itemFocado == h.armaEquipada || itemFocado == h.armaduraEquipada);
+                    String msgAcao = (itemFocado.tipo == 0) ? "USAR" : (isEquipado ? "DESEQUIPAR" : "EQUIPAR");
+                    
+                    desenharBotaoHover(g, msgAcao, 250, 650, 150, 40, true); desenharBotaoHover(g, "DESCARTAR", 420, 650, 150, 40, true);
+                    desenharBotaoHover(g, "CANCELAR", 590, 650, 150, 40, true);
                 }
-                desenharBotao(g, "VOLTAR", 1050, 560, 180, 80, false);
+                desenharBotaoHover(g, "VOLTAR", 1050, 560, 180, 80, true);
             } 
             else if (menuStatusAberto) {
                 g.setColor(new Color(0, 0, 0, 220)); g.fillRect(300, 100, 680, 400); g.setColor(Color.WHITE); g.drawRect(300, 100, 680, 400);
                 if (h.sprite != null) g.drawImage(h.sprite, 320, 150, 159, 300, null);
                 g.setFont(new Font("Arial", Font.BOLD, 30)); g.drawString("STATUS DE " + h.nome.toUpperCase(), 500, 150);
-                g.setFont(new Font("Arial", Font.PLAIN, 24));
-                g.drawString("Classe: " + h.classe.nomeClasse, 500, 200); g.drawString("HP: " + h.status.hp + " / " + h.status.hpMax, 500, 240);
-                g.drawString("Hardware(Fís): " + h.status.hardware + (h.armaEquipada!=null?"(+"+h.armaEquipada.poder+")":""), 500, 280);
-                g.drawString("Software(Mag): " + h.status.software, 500, 320);
-                g.drawString("Manutenção: " + h.status.manutencao + (h.armaduraEquipada!=null?"(+"+h.armaduraEquipada.poder+")":""), 500, 360);
-                g.drawString("Firewall: " + h.status.firewall, 500, 400);
-                desenharBotao(g, "FECHAR", 540, 560, 240, 80, false);
+                g.setFont(new Font("Arial", Font.PLAIN, 24)); g.drawString("Classe: " + h.classe.nomeClasse, 500, 200); g.drawString("HP: " + h.status.hp + " / " + h.status.hpMax, 500, 240);
+                g.drawString("Hardware: " + h.status.hardware + (h.armaEquipada!=null?"(+"+h.armaEquipada.poder+")":""), 500, 280); g.drawString("Software: " + h.status.software, 500, 320);
+                g.drawString("Manutenção: " + h.status.manutencao + (h.armaduraEquipada!=null?"(+"+h.armaduraEquipada.poder+")":""), 500, 360); g.drawString("Firewall: " + h.status.firewall, 500, 400);
+                desenharBotaoHover(g, "FECHAR STATUS", 540, 560, 240, 80, true);
             } 
             else {
-                desenharBotao(g, "ATACAR", 250, 560, 180, 80, false); desenharBotao(g, "MOCHILA", 450, 560, 180, 80, false);
-                if(!h.skillUsadaNoAndar) desenharBotao(g, "SKILL", 650, 560, 180, 80, false); else { g.setColor(Color.DARK_GRAY); g.fillRect(650, 560, 180, 80); }
-                desenharBotao(g, "STATUS", 850, 560, 180, 80, false); 
+                desenharBotaoHover(g, "ATACAR", 250, 560, 180, 80, true); desenharBotaoHover(g, "MOCHILA", 450, 560, 180, 80, true);
+                if(!h.skillUsadaNoAndar) desenharBotaoHover(g, "SKILL", 650, 560, 180, 80, true); else { g.setColor(Color.DARK_GRAY); g.fillRect(650, 560, 180, 80); }
+                desenharBotaoHover(g, "STATUS", 850, 560, 180, 80, true); 
                 
-                // Botão de Fugir desabilita se ele já tentou neste andar
-                if(!h.tentouFugirNoAndar) desenharBotao(g, "FUGIR", 1050, 560, 180, 80, false);
-                else { g.setColor(Color.DARK_GRAY); g.fillRect(1050, 560, 180, 80); }
+                if(h.tentouFugirNoAndar) { g.setColor(Color.DARK_GRAY); g.fillRect(1050, 560, 180, 80); } 
+                else desenharBotaoHover(g, "FUGIR", 1050, 560, 180, 80, true);
             }
         }
     }
 
     private void desenharLoja(Graphics2D g) {
         if (bgLoja != null) g.drawImage(bgLoja, 0, 0, 1280, 720, null); else { g.setColor(new Color(0, 50, 50)); g.fillRect(0, 0, 1280, 720); }
-
         Image npcImg = lojaLendaria ? spriteDiegao : spriteMarcao;
         if (npcImg != null) g.drawImage(npcImg, 100, 180, 159, 300, null);
 
-        g.setColor(Color.WHITE); g.fillRect(450, 30, 400, 80);
-        g.setColor(Color.BLACK); g.setFont(new Font("Arial", Font.BOLD, 25));
+        g.setColor(Color.WHITE); g.fillRect(450, 30, 400, 80); g.setColor(Color.BLACK); g.setFont(new Font("Arial", Font.BOLD, 25));
         g.drawString(lojaLendaria ? "LOJA LENDÁRIA DO DIEGÃO" : "LOJA DO MARCÃO", 480, 80);
 
         for(int i=0; i<3; i++) {
             int x = 450 + (i*200);
-            desenharBotaoSprite(g, imgItens[i], x, 150, 150, 150, false);
-            g.setColor(Color.BLACK); g.fillRect(x, 310, 150, 100);
-            g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 14));
+            
+            // Puxando icone diretamente do Item
+            desenharBotaoSprite(g, (itensLojaAtual[i] != null) ? itensLojaAtual[i].icone : null, x, 150, 150, 150, false);
+            
+            g.setColor(Color.BLACK); g.fillRect(x, 310, 150, 100); g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 14));
             if(itensLojaAtual[i] != null) {
-                g.drawString(itensLojaAtual[i].nome, x+10, 335);
-                g.setFont(new Font("Arial", Font.PLAIN, 12));
-                g.drawString(itensLojaAtual[i].descricao, x+10, 360);
-                
-                // Impede que o fujão compre itens
-                if(!party.get(jogadorTurnoAtual).fugiuDestaBatalha) desenharBotao(g, "PEGAR", x, 420, 150, 40, false);
-                else { g.setColor(Color.RED); g.drawString("Fujão Bloqueado!", x+10, 440); }
+                g.drawString(itensLojaAtual[i].nome, x+10, 335); g.setFont(new Font("Arial", Font.PLAIN, 12)); g.drawString(itensLojaAtual[i].descricao, x+10, 360);
+                if(jogadorTurnoAtual < party.size() && !party.get(jogadorTurnoAtual).fugiuDestaBatalha) { 
+                    desenharBotaoHover(g, "PEGAR", x, 420, 150, 40, true); 
+                }
             }
         }
 
-        g.setColor(Color.BLACK); g.fillRect(0, 520, 1280, 200);
-        g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 18));
-        g.drawString("Aperte PEGAR em UM item para o Herói: " + party.get(jogadorTurnoAtual).nome, 50, 560);
+        g.setColor(Color.BLACK); g.fillRect(0, 520, 1280, 200); g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 18));
         
-        desenharBotao(g, "Próximo Andar", 800, 560, 200, 60, false);
-        desenharBotao(g, "Sair do Jogo", 1050, 560, 150, 60, false);
-    }
-
-    private void desenharBotao(Graphics2D g, String t, int x, int y, int w, int h, boolean selecionado) {
-        boolean hover = (!bloqueiaClique && mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h);
-        g.setColor(hover || selecionado ? new Color(70, 70, 70) : new Color(30, 30, 30)); g.fillRect(x, y, w, h);
-        g.setColor(hover || selecionado ? Color.WHITE : Color.GRAY); g.setStroke(new BasicStroke(hover || selecionado ? 4 : 2)); g.drawRect(x, y, w, h);
-        g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 18));
-        FontMetrics fm = g.getFontMetrics(); g.drawString(t, x + (w - fm.stringWidth(t)) / 2, y + ((h - fm.getHeight()) / 2) + fm.getAscent());
-    }
-    
-    private void desenharBotaoSprite(Graphics2D g, Image img, int x, int y, int w, int h, boolean selecionado) {
-        if (img != null) g.drawImage(img, x, y, w, h, null); else { g.setColor(Color.BLUE); g.fillRect(x, y, w, h); }
-        if (selecionado) { g.setColor(Color.WHITE); g.setStroke(new BasicStroke(4)); g.drawRect(x, y, w, h); }
+        if (jogadorTurnoAtual < party.size()) { 
+            if(party.get(jogadorTurnoAtual).fugiuDestaBatalha) g.drawString(party.get(jogadorTurnoAtual).nome + " fugiu e não pode pegar itens! Pressione Próximo Heroi.", 50, 560);
+            else g.drawString("Aperte PEGAR em UM item para o Herói: " + party.get(jogadorTurnoAtual).nome, 50, 560); 
+            
+            desenharBotaoHover(g, "MOCHILA ("+party.get(jogadorTurnoAtual).nome+")", 50, 600, 250, 60, true);
+            
+            String txtProximo = (jogadorTurnoAtual < party.size() - 1) ? "PRÓXIMO HERÓI" : "PRÓXIMO ANDAR";
+            desenharBotaoHover(g, txtProximo, 350, 600, 200, 60, true);
+        } 
+        else { g.drawString("Todos os Heróis aptos já agiram na loja!", 50, 560); }
+        
+        if (menuItensAberto && jogadorTurnoAtual < party.size()) {
+            HeroiGUI p = party.get(jogadorTurnoAtual);
+            g.setColor(new Color(0,0,0,200)); g.fillRect(200, 100, 800, 300);
+            for(int i=0; i<Math.min(p.mochila.size(), 4); i++) desenharBotaoHover(g, p.mochila.get(i).nome, 250 + (i*160), 120, 150, 60, true);
+            if (subMenuItem && itemFocado != null) {
+                g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.PLAIN, 16)); g.drawString("Efeito: " + itemFocado.descricao, 250, 220);
+                boolean isEquipado = (itemFocado == p.armaEquipada || itemFocado == p.armaduraEquipada);
+                String msgAcao = (itemFocado.tipo == 0) ? "USAR" : (isEquipado ? "DESEQUIPAR" : "EQUIPAR");
+                desenharBotaoHover(g, msgAcao, 250, 240, 150, 40, true); desenharBotaoHover(g, "DESCARTAR", 420, 240, 150, 40, true);
+                desenharBotaoHover(g, "CANCELAR", 590, 240, 150, 40, true);
+            }
+            desenharBotaoHover(g, "FECHAR MOCHILA", 400, 320, 200, 60, true);
+        }
+        
+        desenharBotaoHover(g, "Sair do Jogo", 1050, 560, 150, 60, true);
     }
 
     @Override
@@ -395,27 +475,42 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
         if (bloqueiaClique) return; 
         int mx = (int)(e.getX() / scaleX); int my = (int)(e.getY() / scaleY);
 
+        if (estadoAtual == Estado.OPCOES) {
+            if (mostrandoTutorial) {
+                if (mx > 500 && mx < 780 && my > 500 && my < 560) mostrandoTutorial = false; // FECHAR
+                return;
+            }
+            if (dropResolucao) {
+                JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
+                if (mx > 500 && mx < 780 && my > 360 && my < 400) { frame.setSize(800, 600); frame.setLocationRelativeTo(null); dropResolucao = false; }
+                else if (mx > 500 && mx < 780 && my > 400 && my < 440) { frame.setSize(1280, 720); frame.setLocationRelativeTo(null); dropResolucao = false; }
+                else if (mx > 500 && mx < 780 && my > 440 && my < 480) { frame.setSize(1920, 1080); frame.setLocationRelativeTo(null); dropResolucao = false; }
+                else dropResolucao = false; 
+                return;
+            }
+            
+            if (mx > 20 && mx < 170 && my > 640 && my < 680) { estadoAtual = Estado.MENU; dropResolucao = false; } 
+            if (mx > 1100 && mx < 1250 && my > 20 && my < 60) { System.exit(0); } 
+            
+            if (mx > 500 && mx < 780 && my > 200 && my < 260) mostrandoTutorial = true;
+            if (mx > 500 && mx < 780 && my > 300 && my < 360) dropResolucao = !dropResolucao;
+            return;
+        }
+
         if (estadoAtual == Estado.MENU) {
             if (mx > 540 && mx < 740 && my > 350 && my < 410) estadoAtual = Estado.MODO_JOGO;
             if (mx > 540 && mx < 740 && my > 430 && my < 490) estadoAtual = Estado.OPCOES;
             if (mx > 540 && mx < 740 && my > 510 && my < 570) System.exit(0);
         }
-        else if (estadoAtual == Estado.OPCOES) {
-            JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
-            if (mx > 500 && mx < 780 && my > 200 && my < 260) { frame.setSize(800, 600); frame.setLocationRelativeTo(null); }
-            if (mx > 500 && mx < 780 && my > 300 && my < 360) { frame.setSize(1280, 720); frame.setLocationRelativeTo(null); }
-            if (mx > 500 && mx < 780 && my > 400 && my < 460) { frame.setSize(1920, 1080); frame.setLocationRelativeTo(null); }
-            if (mx > 540 && mx < 740 && my > 550 && my < 610) estadoAtual = Estado.MENU; 
-        }
         else if (estadoAtual == Estado.MODO_JOGO) {
-            if (mx > 20 && mx < 170 && my > 20 && my < 60) { estadoAtual = Estado.MENU; } // VOLTAR
-            if (mx > 1100 && mx < 1250 && my > 20 && my < 60) { System.exit(0); } // SAIR
+            if (mx > 20 && mx < 170 && my > 640 && my < 680) { estadoAtual = Estado.MENU; } 
+            if (mx > 1100 && mx < 1250 && my > 20 && my < 60) { System.exit(0); } 
             if (mx > 500 && mx < 780 && my > 300 && my < 360) { qtdJogadores = 1; estadoAtual = Estado.SELECAO_PERSONAGEM; party.clear(); }
             if (mx > 500 && mx < 780 && my > 400 && my < 460) { qtdJogadores = 2; estadoAtual = Estado.SELECAO_PERSONAGEM; party.clear(); }
             if (mx > 500 && mx < 780 && my > 500 && my < 560) { qtdJogadores = 3; estadoAtual = Estado.SELECAO_PERSONAGEM; party.clear(); }
         }
         else if (estadoAtual == Estado.SELECAO_PERSONAGEM) {
-            if (mx > 20 && mx < 170 && my > 20 && my < 60) { estadoAtual = Estado.MODO_JOGO; party.clear(); heroiSelecionadoUI = -1;} 
+            if (mx > 20 && mx < 170 && my > 640 && my < 680) { estadoAtual = Estado.MODO_JOGO; party.clear(); heroiSelecionadoUI = -1;} 
             if (mx > 1100 && mx < 1250 && my > 20 && my < 60) { System.exit(0); } 
             
             if (mx > 250 && mx < 409 && my > 200 && my < 500) heroiSelecionadoUI = 0;
@@ -429,7 +524,7 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
             }
         }
         else if (estadoAtual == Estado.SELECAO_CLASSE) {
-            if (mx > 20 && mx < 170 && my > 20 && my < 60) { party.remove(party.size() - 1); estadoAtual = Estado.SELECAO_PERSONAGEM; classeSelecionadaUI = -1; } 
+            if (mx > 20 && mx < 170 && my > 640 && my < 680) { party.remove(party.size() - 1); estadoAtual = Estado.SELECAO_PERSONAGEM; classeSelecionadaUI = -1; } 
             if (mx > 1100 && mx < 1250 && my > 20 && my < 60) { System.exit(0); }
             
             if (mx > 200 && mx < 450 && my > 200 && my < 260) classeSelecionadaUI = 0;
@@ -460,16 +555,18 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
                 for(int i=0; i<Math.min(p.mochila.size(), 4); i++) {
                     if (mx > 250+(i*160) && mx < 400+(i*160) && my > 540 && my < 600) { itemFocado = p.mochila.get(i); subMenuItem = true; }
                 }
-                
                 if (subMenuItem && itemFocado != null) {
-                    if (mx > 250 && mx < 370 && my > 650 && my < 690) { // USAR EQUIPAR
-                        if (itemFocado.tipo == 0) p.status.hp = Math.min(p.status.hpMax, p.status.hp + itemFocado.poder);
-                        else if (itemFocado.tipo == 1) p.armaEquipada = itemFocado;
-                        else p.armaduraEquipada = itemFocado;
-                        p.mochila.remove(itemFocado); addLog(p.nome + " utilizou " + itemFocado.nome + "!", () -> avancarTurno());
+                    boolean isEquipado = (itemFocado == p.armaEquipada || itemFocado == p.armaduraEquipada);
+                    if (mx > 250 && mx < 370 && my > 650 && my < 690) { 
+                        if (itemFocado.tipo == 0) { p.status.hp = Math.min(p.status.hpMax, p.status.hp + itemFocado.poder); p.mochila.remove(itemFocado); addLog(p.nome + " bebeu " + itemFocado.nome +"!", () -> avancarTurno()); }
+                        else if (isEquipado) { if(itemFocado.tipo == 1 || itemFocado.tipo == 3) p.armaEquipada = null; else p.armaduraEquipada = null; subMenuItem=false; repaint(); }
+                        else { if(itemFocado.tipo == 1 || itemFocado.tipo == 3) p.armaEquipada = itemFocado; else p.armaduraEquipada = itemFocado; subMenuItem=false; repaint(); }
                     }
-                    if (mx > 390 && mx < 510 && my > 650 && my < 690) { p.mochila.remove(itemFocado); itemFocado = null; subMenuItem = false; repaint(); } // DESCARTA
-                    if (mx > 530 && mx < 650 && my > 650 && my < 690) { itemFocado = null; subMenuItem = false; repaint(); } // CANCELA SUB
+                    if (mx > 390 && mx < 510 && my > 650 && my < 690) { 
+                        if(isEquipado) { if(itemFocado.tipo == 1 || itemFocado.tipo == 3) p.armaEquipada = null; else p.armaduraEquipada = null; }
+                        p.mochila.remove(itemFocado); itemFocado = null; subMenuItem = false; repaint(); 
+                    }
+                    if (mx > 530 && mx < 650 && my > 650 && my < 690) { itemFocado = null; subMenuItem = false; repaint(); }
                 }
                 if (mx > 1050 && mx < 1230 && my > 560 && my < 640) { menuItensAberto = false; itemFocado = null; subMenuItem = false; }
                 return;
@@ -479,44 +576,80 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
                 if (mx > 1050 && mx < 1230 && my > 560 && my < 640) escolhendoAlvo = false; 
                 for(int i=0; i < inimigos.size(); i++) {
                     int x = 1280/(inimigos.size()+1) * (i+1) - 140;
-                    if (mx > x && mx < x+280 && my > 150 && my < 430) { addLog(p.atacarBasico(inimigos.get(i)), () -> avancarTurno()); }
+                    if (mx > x && mx < x+280 && my > 150 && my < 430) { 
+                        if(p.classe instanceof DonoLanHouse && p.skillUsadaNoAndar) turnoExtraLanHouse = true; // Se for dono de lanhouse com skill ligada, duplo turno!
+                        addLog(p.atacarBasico(inimigos.get(i)), () -> avancarTurno()); 
+                    }
                 }
                 return;
             }
 
-            if (mx > 250 && mx < 430 && my > 560 && my < 640) escolhendoAlvo = true; // ATACAR
+            if (mx > 250 && mx < 430 && my > 560 && my < 640) escolhendoAlvo = true; 
             if (mx > 450 && mx < 630 && my > 560 && my < 640) { if(p.mochila.size()>0) menuItensAberto = true; else addLog("Mochila Vazia!", null); }
-            if (!p.skillUsadaNoAndar && mx > 650 && mx < 830 && my > 560 && my < 640) { p.skillUsadaNoAndar = true; addLog(p.classe.usarSkill(p, inimigos), () -> avancarTurno()); }
-            if (mx > 850 && mx < 1030 && my > 560 && my < 640) menuStatusAberto = true; // STATUS
+            if (!p.skillUsadaNoAndar && mx > 650 && mx < 830 && my > 560 && my < 640) { 
+                p.skillUsadaNoAndar = true; 
+                if (p.classe instanceof DonoLanHouse) turnoExtraLanHouse = true; 
+                addLog(p.classe.usarSkill(p, inimigos), () -> avancarTurno()); 
+            }
+            if (mx > 850 && mx < 1030 && my > 560 && my < 640) menuStatusAberto = true; 
             
             if (!p.tentouFugirNoAndar && mx > 1050 && mx < 1230 && my > 560 && my < 640) { 
-                p.tentouFugirNoAndar = true; p.fugiuDestaBatalha = true;
-                addLog(p.nome + " fugiu! Cuidado com as costas...", () -> avancarTurno());
+                p.fugiuDestaBatalha = true; p.tentouFugirNoAndar = true; 
+                addLog(p.nome + " fugiu! Pula a vez e -50% ATK depois!", () -> avancarTurno());
             }
         }
         else if (estadoAtual == Estado.LOJA) {
-            HeroiGUI pAtual = party.get(jogadorTurnoAtual);
-            
-            if(!pAtual.fugiuDestaBatalha) { // O Fujão não clica nos itens da mesa
-                for(int i=0; i<3; i++) {
-                    int x = 450 + (i*200);
-                    if (itensLojaAtual[i] != null && mx > x && mx < x+150 && my > 420 && my < 460) {
-                        pAtual.mochila.add(itensLojaAtual[i]);
-                        addLog(pAtual.nome + " pegou: " + itensLojaAtual[i].nome + "!", null);
-                        itensLojaAtual[i] = null; 
-                        
-                        jogadorTurnoAtual++;
-                        if (jogadorTurnoAtual >= party.size()) { addLog("Todos agiram! Partindo...", () -> gerarAndarDeCombate()); }
+            if (menuItensAberto && jogadorTurnoAtual < party.size()) {
+                HeroiGUI p = party.get(jogadorTurnoAtual);
+                for(int i=0; i<Math.min(p.mochila.size(), 4); i++) {
+                    if (mx > 250+(i*160) && mx < 400+(i*160) && my > 120 && my < 180) { itemFocado = p.mochila.get(i); subMenuItem = true; }
+                }
+                if (subMenuItem && itemFocado != null) {
+                    boolean isEquipado = (itemFocado == p.armaEquipada || itemFocado == p.armaduraEquipada);
+                    if (mx > 250 && mx < 400 && my > 240 && my < 280) { 
+                        if (itemFocado.tipo == 0) { p.status.hp = Math.min(p.status.hpMax, p.status.hp + itemFocado.poder); p.mochila.remove(itemFocado); }
+                        else if (isEquipado) { if(itemFocado.tipo == 1 || itemFocado.tipo == 3) p.armaEquipada = null; else p.armaduraEquipada = null;}
+                        else { if(itemFocado.tipo == 1 || itemFocado.tipo == 3) p.armaEquipada = itemFocado; else p.armaduraEquipada = itemFocado;}
+                        subMenuItem=false; repaint();
+                    }
+                    if (mx > 420 && mx < 570 && my > 240 && my < 280) { itemFocado = null; subMenuItem = false; repaint(); } 
+                }
+                if (mx > 400 && mx < 600 && my > 320 && my < 380) { menuItensAberto = false; itemFocado = null; subMenuItem = false; }
+                return;
+            }
+
+            if (jogadorTurnoAtual < party.size()) {
+                HeroiGUI pAtual = party.get(jogadorTurnoAtual);
+                
+                if (mx > 50 && mx < 300 && my > 600 && my < 660) { menuItensAberto = true; }
+                if (mx > 350 && mx < 550 && my > 600 && my < 660) { 
+                    jogadorTurnoAtual++; 
+                    if(jogadorTurnoAtual < party.size()) { gerarItensLoja(); prepararLoja(); }
+                    else { gerarAndarDeCombate(); }
+                }
+
+                if(!pAtual.fugiuDestaBatalha) {
+                    for(int i=0; i<3; i++) {
+                        int x = 450 + (i*200);
+                        if (itensLojaAtual[i] != null && mx > x && mx < x+150 && my > 420 && my < 460) {
+                            Item itemDesejado = itensLojaAtual[i];
+                            int qtdUsaveis = 0, qtdEquip = 0;
+                            for(Item it : pAtual.mochila) { if(it.tipo == 0) qtdUsaveis++; else qtdEquip++; }
+                            
+                            if (itemDesejado.tipo == 0 && qtdUsaveis >= 1) { addLog("Limite de Consumíveis (1)! Descarte na Mochila.", null); } 
+                            else if (itemDesejado.tipo != 0 && qtdEquip >= 3) { addLog("Limite de Equipamentos (3)! Descarte na Mochila.", null); } 
+                            else { 
+                                pAtual.mochila.add(itemDesejado); 
+                                itensLojaAtual[i] = null; 
+                                jogadorTurnoAtual++;
+                                if(jogadorTurnoAtual < party.size()) { gerarItensLoja(); prepararLoja(); }
+                                else { addLog("Equipe abastecida! Partindo...", () -> gerarAndarDeCombate()); }
+                            }
+                        }
                     }
                 }
-            } else {
-                // Se for o turno do fujão, ele pula automático
-                jogadorTurnoAtual++;
-                if (jogadorTurnoAtual >= party.size()) { gerarAndarDeCombate(); }
             }
-            
-            if (mx > 800 && mx < 1000 && my > 560 && my < 620) gerarAndarDeCombate();
-            if (mx > 1050 && mx < 1200 && my > 560 && my < 620) System.exit(0);
+            if (mx > 1050 && mx < 1200 && my > 560 && my < 620) { System.exit(0); }
         }
     }
     public void mouseClicked(MouseEvent e) {} public void mouseReleased(MouseEvent e) {}
