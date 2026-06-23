@@ -4,6 +4,8 @@ import java.util.ArrayList;
 
 public abstract class HeroiGUI {
     String nome, passiva; Status status; ClasseRPG classe; Image sprite;
+    
+    // VARIÁVEIS DE CONTROLE
     boolean fugiuNaUltima = false, fugiuDestaBatalha = false, skillUsadaNoAndar = false, tentouFugirNoAndar = false;
     
     ArrayList<Item> mochila = new ArrayList<>();
@@ -14,12 +16,11 @@ public abstract class HeroiGUI {
     public abstract String aplicarPassivaTurno();
 
     public String atacarBasico(InimigoGUI alvo) {
-        // ROLAGEM D100 - Sistema de Precisão
         int d100 = new java.util.Random().nextInt(100) + 1;
-        if (d100 <= 10) return nome + " ERROU o ataque!"; // 10% de chance de errar
+        if (d100 <= 10) return nome + " ERROU o ataque!"; 
         
         int critChance = (this.classe instanceof DonoLanHouse) ? 30 : 10;
-        boolean crit = d100 > (100 - critChance); // 10% Crítico (LanHouse tem 30%)
+        boolean crit = d100 > (100 - critChance); 
 
         int ataqueBonusHard = (armaEquipada != null && armaEquipada.tipo == 1) ? armaEquipada.poder : 0;
         int ataqueBonusSoft = (armaEquipada != null && armaEquipada.tipo == 3) ? armaEquipada.poder : 0;
