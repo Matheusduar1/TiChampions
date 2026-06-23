@@ -15,7 +15,8 @@ public abstract class HeroiGUI {
     public void setClasse(ClasseRPG novaClasse) { this.classe = novaClasse; }
     public abstract String aplicarPassivaTurno();
 
-    public String atacarBasico(InimigoGUI alvo) {
+    // AGORA O ATAQUE RECEBE O TIPO (0 = Hardware, 1 = Software)
+    public String atacarBasico(InimigoGUI alvo, int tipoAtk) {
         int d100 = new java.util.Random().nextInt(100) + 1;
         if (d100 <= 10) return nome + " ERROU o ataque!"; 
         
@@ -26,14 +27,21 @@ public abstract class HeroiGUI {
         int ataqueBonusSoft = (armaEquipada != null && armaEquipada.tipo == 3) ? armaEquipada.poder : 0;
         
         int danoCausado;
-        if (this.classe instanceof HackerMan) danoCausado = Math.max(1, (status.software + ataqueBonusSoft) - alvo.status.firewall);
-        else danoCausado = Math.max(1, (status.hardware + ataqueBonusHard) - alvo.status.manutencao);
+        String nomeAtaque;
+        
+        if (tipoAtk == 1) { // Escolheu atacar com Software
+            danoCausado = Math.max(1, (status.software + ataqueBonusSoft) - alvo.status.firewall);
+            nomeAtaque = "Software";
+        } else { // Escolheu atacar com Hardware
+            danoCausado = Math.max(1, (status.hardware + ataqueBonusHard) - alvo.status.manutencao);
+            nomeAtaque = "Hardware";
+        }
         
         if (fugiuNaUltima) danoCausado = danoCausado / 2; 
         if (crit) danoCausado *= 2;
 
         alvo.status.hp -= danoCausado; alvo.ativarPiscar(); 
-        return nome + (crit ? " DEU CRÍTICO! " : " atacou! ") + danoCausado + " de dano!";
+        return nome + (crit ? " deu CRÍTICO ("+nomeAtaque+")! " : " atacou ("+nomeAtaque+")! ") + danoCausado + " dano!";
     }
 }
 
