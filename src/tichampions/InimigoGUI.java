@@ -12,6 +12,7 @@ public class InimigoGUI {
         else if(spriteId == 3) this.nome = "BOSS Arquiteto";
         else this.nome = "Bug Lv." + level;
     }
+    
     public void ativarPiscar() { this.timerPiscar = 30; } 
     public void ativarAtaqueAnim() { this.timerAtacar = 15; }
     
@@ -28,12 +29,12 @@ public class InimigoGUI {
             danoCausado = Math.max(1, status.software - (alvo.status.firewall + defBonusFirew));
             if(crit) danoCausado *= 2;
             alvo.status.hp -= danoCausado;
-            return nome + (crit?" DEU CRÍTICO Soft! ":" usou Software! ") + danoCausado + " dano!";
+            return nome + (crit ? " deu CRÍTICO em " : " atacou ") + alvo.nome + "! " + danoCausado + " de dano!";
         } else { 
             danoCausado = Math.max(1, status.hardware - (alvo.status.manutencao + defBonusManut));
             if(crit) danoCausado *= 2;
             alvo.status.hp -= danoCausado;
-            return nome + (crit?" DEU CRÍTICO Hard! ":" usou Hardware! ") + danoCausado + " dano!";
+            return nome + (crit ? " deu CRÍTICO em " : " atacou ") + alvo.nome + "! " + danoCausado + " de dano!";
         }
     }
 }

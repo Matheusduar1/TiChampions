@@ -25,7 +25,15 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
     
     // VARIÁVEIS DE CONTROLE
     boolean escolhendoAlvo = false, menuItensAberto = false, menuStatusAberto = false, subMenuItem = false;
+    boolean menuAtaqueAberto = false; 
+    int tipoAtaqueEscolhido = 0; 
+    
+    // VARIÁVEIS DO EXAMINAR
+    boolean examinandoAlvo = false;
+    InimigoGUI inimigoExame = null;
+    
     boolean mostrandoTutorial = false, dropResolucao = false, turnoExtraLanHouse = false;
+    boolean comprouItemLoja = false;
     Item itemFocado = null; 
     
     ArrayList<String> logBatalha = new ArrayList<>();
@@ -40,6 +48,7 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
     Image[] imgInimigos = new Image[5]; 
     Image[] imgItens = new Image[6]; 
     Item[] itensLojaAtual = new Item[3];
+    boolean[] itemLojaComprado = {false, false, false}; 
 
     public MotorGrafico() {
         this.setPreferredSize(new Dimension(1280, 720));
@@ -77,10 +86,10 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
 
     private void addLog(String msg, Runnable proximaAcao) {
         logBatalha.add(msg);
-        if (logBatalha.size() > 5) logBatalha.remove(0); // Agora guarda até 5 linhas
+        if (logBatalha.size() > 5) logBatalha.remove(0); 
         
         bloqueiaClique = true;
-        menuItensAberto = false; menuStatusAberto = false; subMenuItem = false;
+        menuItensAberto = false; menuStatusAberto = false; subMenuItem = false; menuAtaqueAberto = false;
         
         if (timerEsperaAcao != null && timerEsperaAcao.isRunning()) timerEsperaAcao.stop();
         timerEsperaAcao = new Timer(1500, e -> {
@@ -101,15 +110,21 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
 
         Collections.shuffle(pool, rng);
         itensLojaAtual[0] = pool.get(0); itensLojaAtual[1] = pool.get(1); itensLojaAtual[2] = pool.get(2);
+        
+        itemLojaComprado[0] = false; itemLojaComprado[1] = false; itemLojaComprado[2] = false;
+        comprouItemLoja = false; 
     }
 
     private void gerarAndarDeCombate() {
         inimigos.clear(); batalhasSeguidas++;
+        
+        int mult = party.size();
+        
         if (batalhasSeguidas >= 5) {
-            inimigos.add(new InimigoGUI(andarTotal, new Status(300+(andarTotal*10), 20+andarTotal, 0, 15, 15), 3, 0));
+            inimigos.add(new InimigoGUI(andarTotal, new Status((300*mult)+(andarTotal*10), (20*mult)+andarTotal, 0, 15*mult, 15*mult), 3, 0));
             batalhasSeguidas = 0;
         } else {
-            int qInimigos = (rng.nextInt(100) < 10) ? qtdJogadores + rng.nextInt(2) + 1 : qtdJogadores;
+            int qInimigos = (rng.nextInt(100) < 10) ? party.size() + rng.nextInt(2) + 1 : party.size();
             for(int i=0; i < qInimigos; i++) {
                 int idSpr = rng.nextInt(3); int tAtaque = (idSpr == 1) ? 1 : 0; 
                 inimigos.add(new InimigoGUI(andarTotal, new Status(40+(andarTotal*10), 10+andarTotal, 10+andarTotal, 2, 2), idSpr, tAtaque));
@@ -126,19 +141,22 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
     private void avancarTurno() {
         inimigos.removeIf(i -> i.status.hp <= 0);
         escolhendoAlvo = false; 
+        menuAtaqueAberto = false;
         
         if (inimigos.isEmpty()) {
+            turnoExtraLanHouse = false; 
             for(HeroiGUI h : party) if(!h.fugiuDestaBatalha) h.fugiuNaUltima = false; 
             andarTotal++; lojaLendaria = (batalhasSeguidas == 0); 
             gerarItensLoja();
-            addLog("Batalha Vencida! Avançando...", () -> { prepararLoja(); estadoAtual = Estado.LOJA; }); return;
+            addLog("Batalha Vencida! Avançando...", () -> { iniciarLoja(); estadoAtual = Estado.LOJA; }); return;
         }
         
         int vivos = 0, fugiram = 0;
         for(HeroiGUI h : party) { if(h.status.hp > 0 && !h.fugiuDestaBatalha) vivos++; if(h.fugiuDestaBatalha) fugiram++; }
         
         if (vivos == 0) {
-            if (fugiram > 0) addLog("Todos fugiram! Indo à Loja...", () -> { gerarItensLoja(); prepararLoja(); estadoAtual = Estado.LOJA; });
+            turnoExtraLanHouse = false;
+            if (fugiram > 0) addLog("Todos fugiram! Indo à Loja...", () -> { iniciarLoja(); estadoAtual = Estado.LOJA; });
             else addLog("GAME OVER! A equipe foi derrotada.", () -> estadoAtual = Estado.GAME_OVER);
             return;
         }
@@ -146,7 +164,7 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
         if (!turnoInimigo) {
             if (turnoExtraLanHouse) {
                 turnoExtraLanHouse = false; 
-                addLog(party.get(jogadorTurnoAtual).nome + " ganhou +1 Ficha! Turno Extra!", null);
+                addLog(party.get(jogadorTurnoAtual).nome + " ganhou +1 Ficha! Jogue de Novo!", null);
             } else {
                 jogadorTurnoAtual++;
                 if (jogadorTurnoAtual >= party.size()) { turnoInimigo = true; executarTurnoInimigo(); } 
@@ -155,9 +173,22 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
         } else { turnoInimigo = false; jogadorTurnoAtual = 0; verificarTurnoValido(); }
     }
 
-    private void prepararLoja() {
-        jogadorTurnoAtual = 0;
-        while(jogadorTurnoAtual < party.size() && party.get(jogadorTurnoAtual).fugiuDestaBatalha) jogadorTurnoAtual++;
+    private void iniciarLoja() {
+        jogadorTurnoAtual = 0; 
+        while(jogadorTurnoAtual < party.size() && party.get(jogadorTurnoAtual).fugiuDestaBatalha) {
+            jogadorTurnoAtual++;
+        }
+        if (jogadorTurnoAtual < party.size()) { gerarItensLoja(); } 
+        else { gerarAndarDeCombate(); }
+    }
+
+    private void avancarJogadorLoja() {
+        jogadorTurnoAtual++;
+        while(jogadorTurnoAtual < party.size() && party.get(jogadorTurnoAtual).fugiuDestaBatalha) {
+            jogadorTurnoAtual++;
+        }
+        if (jogadorTurnoAtual < party.size()) { gerarItensLoja(); } 
+        else { gerarAndarDeCombate(); }
     }
 
     private void verificarTurnoValido() {
@@ -180,10 +211,9 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
             if(alvo.status.hp <= 0) alvosVivos.remove(alvo);
         }
         
-        // Bloqueia a tela por 2 segundos para dar tempo de ler todos os ataques
         bloqueiaClique = true;
         if (timerEsperaAcao != null && timerEsperaAcao.isRunning()) timerEsperaAcao.stop();
-        timerEsperaAcao = new Timer(2000, e -> { bloqueiaClique = false; avancarTurno(); repaint(); });
+        timerEsperaAcao = new Timer(2500, e -> { bloqueiaClique = false; avancarTurno(); repaint(); });
         timerEsperaAcao.setRepeats(false); timerEsperaAcao.start();
     }
 
@@ -258,9 +288,10 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
             g.setFont(new Font("Arial", Font.PLAIN, 20));
             g.drawString("• HARDWARE: Dano Físico. A defesa contra ele é a sua Manutenção.", 250, 250);
             g.drawString("• SOFTWARE: Dano Mágico. A defesa contra ele é o seu Firewall.", 250, 290);
-            g.drawString("• ITENS DA LOJA: Máx de 3 Equipamentos instalados ao mesmo tempo.", 250, 330);
-            g.drawString("• CONSUMÍVEIS: Você só pode carregar 1 consumível de uso por vez.", 250, 370);
+            g.drawString("• ITENS DA LOJA: Máx de 1 Arma, 1 Armadura e 1 Ativo na Mochila.", 250, 330);
+            g.drawString("• CONSUMÍVEIS: Podem ser usados diretamente no menu Mochila.", 250, 370);
             g.drawString("• FUGIR: Você pula o turno e perde -50% de Ataque. Fujões não vão na loja.", 250, 410);
+            g.drawString("• PRECISÃO: Todos tem 10% de chance de errar e 10% de Crítico.", 250, 450);
             
             desenharBotaoHover(g, "FECHAR TUTORIAL", 500, 500, 280, 60, true);
         }
@@ -350,7 +381,7 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
             InimigoGUI ini = inimigos.get(i);
             int x = 1280/(inimigos.size()+1) * (i+1) - 140;
             
-            boolean mouseHoverIni = (escolhendoAlvo && mouseX > x && mouseX < x+280 && mouseY > 150 && mouseY < 430);
+            boolean mouseHoverIni = ((escolhendoAlvo || examinandoAlvo) && mouseX > x && mouseX < x+280 && mouseY > 150 && mouseY < 430);
             int floatY = mouseHoverIni ? (int)(Math.sin(tempoAnimacao) * 5) : 0;
             int animAtaqueX = (ini.timerAtacar > 0) ? (int)(Math.sin(ini.timerAtacar) * 15) : 0; 
             
@@ -364,7 +395,7 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
             g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 16));
             String tipoDano = (ini.tipoAtaque == 1) ? "[SOFTWARE]" : "[HARDWARE]";
             g.drawString(tipoDano + " " + ini.nome + " ("+ini.status.hp+" HP)", (x + animAtaqueX) + 10, 125 - floatY);
-            if(escolhendoAlvo) { g.setColor(Color.YELLOW); g.setStroke(new BasicStroke(3)); g.drawRect(x, 150 - floatY, 280, 280); }
+            if(escolhendoAlvo || examinandoAlvo) { g.setColor(Color.YELLOW); g.setStroke(new BasicStroke(3)); g.drawRect(x, 150 - floatY, 280, 280); }
         }
 
         g.setColor(Color.BLACK); g.fillRect(0, 520, 1280, 200);
@@ -379,10 +410,42 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
             if (h.fugiuNaUltima) { g.setColor(Color.RED); g.drawString("DEBUFF: -50% Dano!", 20, 95); }
 
             desenharMiniInventario(g, h);
+            
+            // NOVO BOTÃO DE EXAMINAR ABAIXO DO INVENTÁRIO
+            desenharBotaoHover(g, "EXAMINAR", 20, 615, 200, 40, true);
 
-            if (escolhendoAlvo) {
-                g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 30)); g.drawString("SELECIONE O ALVO!", 350, 630);
+            // Pop-up do Scanner do Inimigo
+            if (inimigoExame != null) {
+                g.setColor(new Color(0, 0, 0, 230)); g.fillRect(400, 150, 480, 350); 
+                g.setColor(Color.WHITE); g.drawRect(400, 150, 480, 350);
+                g.setFont(new Font("Arial", Font.BOLD, 26)); 
+                g.drawString("DADOS DO INIMIGO", 510, 190);
+                
+                g.setFont(new Font("Arial", Font.PLAIN, 20));
+                g.drawString("Nome: " + inimigoExame.nome, 430, 240);
+                g.drawString("HP: " + inimigoExame.status.hp + " / " + inimigoExame.status.hpMax, 430, 280);
+                
+                String tipoAtkNome = (inimigoExame.tipoAtaque == 1) ? "Software" : "Hardware";
+                int valorAtk = (inimigoExame.tipoAtaque == 1) ? inimigoExame.status.software : inimigoExame.status.hardware;
+                
+                g.drawString("Ataque (" + tipoAtkNome + "): " + valorAtk, 430, 320);
+                g.drawString("Defesa (Manutenção): " + inimigoExame.status.manutencao, 430, 360);
+                g.drawString("Defesa (Firewall): " + inimigoExame.status.firewall, 430, 400);
+                
+                desenharBotaoHover(g, "FECHAR", 540, 430, 200, 50, true);
+            }
+            else if (examinandoAlvo) {
+                g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 30)); g.drawString("SELECIONE O ALVO PARA EXAMINAR!", 350, 630);
                 desenharBotaoHover(g, "CANCELAR", 1050, 560, 180, 80, true);
+            }
+            else if (escolhendoAlvo) {
+                g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 30)); g.drawString("SELECIONE O ALVO PARA ATACAR!", 350, 630);
+                desenharBotaoHover(g, "CANCELAR", 1050, 560, 180, 80, true);
+            }
+            else if (menuAtaqueAberto) {
+                desenharBotaoHover(g, "DANO HARDWARE", 250, 560, 200, 80, true);
+                desenharBotaoHover(g, "DANO SOFTWARE", 470, 560, 200, 80, true);
+                desenharBotaoHover(g, "CANCELAR", 690, 560, 180, 80, true);
             }
             else if (menuItensAberto) {
                 for(int i=0; i<Math.min(h.mochila.size(), 4); i++) desenharBotaoHover(g, h.mochila.get(i).nome, 250 + (i*160), 540, 150, 60, true);
@@ -401,9 +464,13 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
                 g.setColor(new Color(0, 0, 0, 220)); g.fillRect(300, 100, 680, 400); g.setColor(Color.WHITE); g.drawRect(300, 100, 680, 400);
                 if (h.sprite != null) g.drawImage(h.sprite, 320, 150, 159, 300, null);
                 g.setFont(new Font("Arial", Font.BOLD, 30)); g.drawString("STATUS DE " + h.nome.toUpperCase(), 500, 150);
-                g.setFont(new Font("Arial", Font.PLAIN, 24)); g.drawString("Classe: " + h.classe.nomeClasse, 500, 200); g.drawString("HP: " + h.status.hp + " / " + h.status.hpMax, 500, 240);
-                g.drawString("Hardware: " + h.status.hardware + (h.armaEquipada!=null?"(+"+h.armaEquipada.poder+")":""), 500, 280); g.drawString("Software: " + h.status.software, 500, 320);
-                g.drawString("Manutenção: " + h.status.manutencao + (h.armaduraEquipada!=null?"(+"+h.armaduraEquipada.poder+")":""), 500, 360); g.drawString("Firewall: " + h.status.firewall, 500, 400);
+                g.setFont(new Font("Arial", Font.PLAIN, 24)); 
+                g.setColor(Color.YELLOW); g.drawString("Classe: " + h.classe.nomeClasse, 500, 200); g.setColor(Color.WHITE);
+                g.drawString("HP: " + h.status.hp + " / " + h.status.hpMax, 500, 240);
+                g.drawString("Hardware: " + h.status.hardware + (h.armaEquipada!=null&&h.armaEquipada.tipo==1?"(+"+h.armaEquipada.poder+")":""), 500, 280); 
+                g.drawString("Software: " + h.status.software + (h.armaEquipada!=null&&h.armaEquipada.tipo==3?"(+"+h.armaEquipada.poder+")":""), 500, 320);
+                g.drawString("Manutenção: " + h.status.manutencao + (h.armaduraEquipada!=null&&h.armaduraEquipada.tipo==2?"(+"+h.armaduraEquipada.poder+")":""), 500, 360); 
+                g.drawString("Firewall: " + h.status.firewall + (h.armaduraEquipada!=null&&h.armaduraEquipada.tipo==4?"(+"+h.armaduraEquipada.poder+")":""), 500, 400);
                 desenharBotaoHover(g, "FECHAR STATUS", 540, 560, 240, 80, true);
             } 
             else {
@@ -428,13 +495,12 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
         for(int i=0; i<3; i++) {
             int x = 450 + (i*200);
             
-            // Puxando icone diretamente do Item
             desenharBotaoSprite(g, (itensLojaAtual[i] != null) ? itensLojaAtual[i].icone : null, x, 150, 150, 150, false);
             
             g.setColor(Color.BLACK); g.fillRect(x, 310, 150, 100); g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 14));
             if(itensLojaAtual[i] != null) {
                 g.drawString(itensLojaAtual[i].nome, x+10, 335); g.setFont(new Font("Arial", Font.PLAIN, 12)); g.drawString(itensLojaAtual[i].descricao, x+10, 360);
-                if(jogadorTurnoAtual < party.size() && !party.get(jogadorTurnoAtual).fugiuDestaBatalha) { 
+                if(jogadorTurnoAtual < party.size() && !party.get(jogadorTurnoAtual).fugiuDestaBatalha && !comprouItemLoja) { 
                     desenharBotaoHover(g, "PEGAR", x, 420, 150, 40, true); 
                 }
             }
@@ -443,13 +509,17 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
         g.setColor(Color.BLACK); g.fillRect(0, 520, 1280, 200); g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.BOLD, 18));
         
         if (jogadorTurnoAtual < party.size()) { 
-            if(party.get(jogadorTurnoAtual).fugiuDestaBatalha) g.drawString(party.get(jogadorTurnoAtual).nome + " fugiu e não pode pegar itens! Pressione Próximo Heroi.", 50, 560);
+            if(party.get(jogadorTurnoAtual).fugiuDestaBatalha) g.drawString(party.get(jogadorTurnoAtual).nome + " fugiu e não pode pegar itens! Pressione Passar a Vez.", 50, 560);
+            else if(comprouItemLoja) g.drawString(party.get(jogadorTurnoAtual).nome + " já pegou um item. Acesse a mochila ou passe a vez.", 50, 560);
             else g.drawString("Aperte PEGAR em UM item para o Herói: " + party.get(jogadorTurnoAtual).nome, 50, 560); 
             
             desenharBotaoHover(g, "MOCHILA ("+party.get(jogadorTurnoAtual).nome+")", 50, 600, 250, 60, true);
             
             String txtProximo = (jogadorTurnoAtual < party.size() - 1) ? "PRÓXIMO HERÓI" : "PRÓXIMO ANDAR";
             desenharBotaoHover(g, txtProximo, 350, 600, 200, 60, true);
+            
+            // Botão Adicional: SAIR DA PARTY
+            if(party.size() > 1) desenharBotaoHover(g, "SAIR DA PARTY", 580, 600, 200, 60, true);
         } 
         else { g.drawString("Todos os Heróis aptos já agiram na loja!", 50, 560); }
         
@@ -466,8 +536,6 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
             }
             desenharBotaoHover(g, "FECHAR MOCHILA", 400, 320, 200, 60, true);
         }
-        
-        desenharBotaoHover(g, "Sair do Jogo", 1050, 560, 150, 60, true);
     }
 
     @Override
@@ -477,7 +545,7 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
 
         if (estadoAtual == Estado.OPCOES) {
             if (mostrandoTutorial) {
-                if (mx > 500 && mx < 780 && my > 500 && my < 560) mostrandoTutorial = false; // FECHAR
+                if (mx > 500 && mx < 780 && my > 500 && my < 560) mostrandoTutorial = false; 
                 return;
             }
             if (dropResolucao) {
@@ -550,6 +618,12 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
         else if (estadoAtual == Estado.COMBATE && !turnoInimigo) {
             HeroiGUI p = party.get(jogadorTurnoAtual);
 
+            // Pop-up do Scanner do Inimigo
+            if (inimigoExame != null) {
+                if (mx > 540 && mx < 740 && my > 430 && my < 480) { inimigoExame = null; repaint(); }
+                return;
+            }
+
             if (menuStatusAberto) { if (mx > 540 && mx < 780 && my > 560 && my < 640) menuStatusAberto = false; return; }
             if (menuItensAberto) {
                 for(int i=0; i<Math.min(p.mochila.size(), 4); i++) {
@@ -571,20 +645,44 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
                 if (mx > 1050 && mx < 1230 && my > 560 && my < 640) { menuItensAberto = false; itemFocado = null; subMenuItem = false; }
                 return;
             }
+            
+            if (menuAtaqueAberto) {
+                if (mx > 250 && mx < 450 && my > 560 && my < 640) { tipoAtaqueEscolhido = 0; menuAtaqueAberto = false; escolhendoAlvo = true; }
+                if (mx > 470 && mx < 670 && my > 560 && my < 640) { tipoAtaqueEscolhido = 1; menuAtaqueAberto = false; escolhendoAlvo = true; }
+                if (mx > 690 && mx < 870 && my > 560 && my < 640) { menuAtaqueAberto = false; }
+                return;
+            }
+
+            if (examinandoAlvo) {
+                if (mx > 1050 && mx < 1230 && my > 560 && my < 640) { examinandoAlvo = false; repaint(); } 
+                for(int i=0; i < inimigos.size(); i++) {
+                    int x = 1280/(inimigos.size()+1) * (i+1) - 140;
+                    if (mx > x && mx < x+280 && my > 150 && my < 430) { 
+                        inimigoExame = inimigos.get(i); 
+                        examinandoAlvo = false; 
+                        repaint(); 
+                    }
+                }
+                return;
+            }
 
             if (escolhendoAlvo) {
                 if (mx > 1050 && mx < 1230 && my > 560 && my < 640) escolhendoAlvo = false; 
                 for(int i=0; i < inimigos.size(); i++) {
                     int x = 1280/(inimigos.size()+1) * (i+1) - 140;
                     if (mx > x && mx < x+280 && my > 150 && my < 430) { 
-                        if(p.classe instanceof DonoLanHouse && p.skillUsadaNoAndar) turnoExtraLanHouse = true; // Se for dono de lanhouse com skill ligada, duplo turno!
-                        addLog(p.atacarBasico(inimigos.get(i)), () -> avancarTurno()); 
+                        addLog(p.atacarBasico(inimigos.get(i), tipoAtaqueEscolhido), () -> avancarTurno()); 
                     }
                 }
                 return;
             }
 
-            if (mx > 250 && mx < 430 && my > 560 && my < 640) escolhendoAlvo = true; 
+            // BOTÃO DE EXAMINAR O INIMIGO
+            if (!escolhendoAlvo && !menuAtaqueAberto && !menuItensAberto && !menuStatusAberto && !examinandoAlvo) {
+                 if (mx > 20 && mx < 220 && my > 615 && my < 655) { examinandoAlvo = true; repaint(); return; }
+            }
+
+            if (mx > 250 && mx < 430 && my > 560 && my < 640) menuAtaqueAberto = true; 
             if (mx > 450 && mx < 630 && my > 560 && my < 640) { if(p.mochila.size()>0) menuItensAberto = true; else addLog("Mochila Vazia!", null); }
             if (!p.skillUsadaNoAndar && mx > 650 && mx < 830 && my > 560 && my < 640) { 
                 p.skillUsadaNoAndar = true; 
@@ -594,7 +692,7 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
             if (mx > 850 && mx < 1030 && my > 560 && my < 640) menuStatusAberto = true; 
             
             if (!p.tentouFugirNoAndar && mx > 1050 && mx < 1230 && my > 560 && my < 640) { 
-                p.fugiuDestaBatalha = true; p.tentouFugirNoAndar = true; 
+                p.fugiuDestaBatalha = true; p.tentouFugirNoAndar = true; p.fugiuNaUltima = true; // ADICIONADO PARA CORRIGIR O DEBUFF
                 addLog(p.nome + " fugiu! Pula a vez e -50% ATK depois!", () -> avancarTurno());
             }
         }
@@ -622,34 +720,56 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
                 HeroiGUI pAtual = party.get(jogadorTurnoAtual);
                 
                 if (mx > 50 && mx < 300 && my > 600 && my < 660) { menuItensAberto = true; }
+                
+                // Botão de Passar a Vez
                 if (mx > 350 && mx < 550 && my > 600 && my < 660) { 
-                    jogadorTurnoAtual++; 
-                    if(jogadorTurnoAtual < party.size()) { gerarItensLoja(); prepararLoja(); }
-                    else { gerarAndarDeCombate(); }
+                    avancarJogadorLoja();
+                }
+                
+                // Botão "SAIR DA PARTY"
+                if (party.size() > 1 && mx > 580 && mx < 780 && my > 600 && my < 660) {
+                    addLog(pAtual.nome + " abandonou a equipe!", null);
+                    party.remove(jogadorTurnoAtual);
+                    qtdJogadores = party.size(); 
+                    
+                    while(jogadorTurnoAtual < party.size() && party.get(jogadorTurnoAtual).fugiuDestaBatalha) {
+                        jogadorTurnoAtual++;
+                    }
+            
+                    if(jogadorTurnoAtual < party.size()) {
+                        comprouItemLoja = false;
+                        gerarItensLoja();
+                    } else {
+                        gerarAndarDeCombate();
+                    }
+                    return; 
                 }
 
-                if(!pAtual.fugiuDestaBatalha) {
+                if(!pAtual.fugiuDestaBatalha && !comprouItemLoja) {
                     for(int i=0; i<3; i++) {
                         int x = 450 + (i*200);
-                        if (itensLojaAtual[i] != null && mx > x && mx < x+150 && my > 420 && my < 460) {
+                        if (!itemLojaComprado[i] && itensLojaAtual[i] != null && mx > x && mx < x+150 && my > 420 && my < 460) {
                             Item itemDesejado = itensLojaAtual[i];
-                            int qtdUsaveis = 0, qtdEquip = 0;
-                            for(Item it : pAtual.mochila) { if(it.tipo == 0) qtdUsaveis++; else qtdEquip++; }
+                            int qtdArmas = 0, qtdArmaduras = 0, qtdUsaveis = 0;
+                            
+                            for(Item it : pAtual.mochila) { 
+                                if(it.tipo == 0) qtdUsaveis++; 
+                                else if (it.tipo == 1 || it.tipo == 3) qtdArmas++; 
+                                else qtdArmaduras++; 
+                            }
                             
                             if (itemDesejado.tipo == 0 && qtdUsaveis >= 1) { addLog("Limite de Consumíveis (1)! Descarte na Mochila.", null); } 
-                            else if (itemDesejado.tipo != 0 && qtdEquip >= 3) { addLog("Limite de Equipamentos (3)! Descarte na Mochila.", null); } 
+                            else if ((itemDesejado.tipo == 1 || itemDesejado.tipo == 3) && qtdArmas >= 1) { addLog("Limite de Arma (1)! Descarte na Mochila.", null); } 
+                            else if ((itemDesejado.tipo == 2 || itemDesejado.tipo == 4) && qtdArmaduras >= 1) { addLog("Limite de Armadura (1)! Descarte na Mochila.", null); }
                             else { 
                                 pAtual.mochila.add(itemDesejado); 
-                                itensLojaAtual[i] = null; 
-                                jogadorTurnoAtual++;
-                                if(jogadorTurnoAtual < party.size()) { gerarItensLoja(); prepararLoja(); }
-                                else { addLog("Equipe abastecida! Partindo...", () -> gerarAndarDeCombate()); }
+                                comprouItemLoja = true;
+                                itemLojaComprado[i] = true; 
                             }
                         }
                     }
                 }
             }
-            if (mx > 1050 && mx < 1200 && my > 560 && my < 620) { System.exit(0); }
         }
     }
     public void mouseClicked(MouseEvent e) {} public void mouseReleased(MouseEvent e) {}
