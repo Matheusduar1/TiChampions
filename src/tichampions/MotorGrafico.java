@@ -411,10 +411,9 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
 
             desenharMiniInventario(g, h);
             
-            // NOVO BOTÃO DE EXAMINAR ABAIXO DO INVENTÁRIO
-            desenharBotaoHover(g, "EXAMINAR", 20, 615, 200, 40, true);
+            // BOTÃO DE EXAMINAR DESCIDO PARA Y=640
+            desenharBotaoHover(g, "EXAMINAR", 20, 640, 200, 40, true);
 
-            // Pop-up do Scanner do Inimigo
             if (inimigoExame != null) {
                 g.setColor(new Color(0, 0, 0, 230)); g.fillRect(400, 150, 480, 350); 
                 g.setColor(Color.WHITE); g.drawRect(400, 150, 480, 350);
@@ -631,16 +630,19 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
                 }
                 if (subMenuItem && itemFocado != null) {
                     boolean isEquipado = (itemFocado == p.armaEquipada || itemFocado == p.armaduraEquipada);
-                    if (mx > 250 && mx < 370 && my > 650 && my < 690) { 
+                    // USAR / EQUIPAR
+                    if (mx > 250 && mx < 400 && my > 650 && my < 690) { 
                         if (itemFocado.tipo == 0) { p.status.hp = Math.min(p.status.hpMax, p.status.hp + itemFocado.poder); p.mochila.remove(itemFocado); addLog(p.nome + " bebeu " + itemFocado.nome +"!", () -> avancarTurno()); }
                         else if (isEquipado) { if(itemFocado.tipo == 1 || itemFocado.tipo == 3) p.armaEquipada = null; else p.armaduraEquipada = null; subMenuItem=false; repaint(); }
                         else { if(itemFocado.tipo == 1 || itemFocado.tipo == 3) p.armaEquipada = itemFocado; else p.armaduraEquipada = itemFocado; subMenuItem=false; repaint(); }
                     }
-                    if (mx > 390 && mx < 510 && my > 650 && my < 690) { 
+                    // DESCARTAR CORRIGIDO (X de 420 a 570)
+                    if (mx > 420 && mx < 570 && my > 650 && my < 690) { 
                         if(isEquipado) { if(itemFocado.tipo == 1 || itemFocado.tipo == 3) p.armaEquipada = null; else p.armaduraEquipada = null; }
                         p.mochila.remove(itemFocado); itemFocado = null; subMenuItem = false; repaint(); 
                     }
-                    if (mx > 530 && mx < 650 && my > 650 && my < 690) { itemFocado = null; subMenuItem = false; repaint(); }
+                    // CANCELAR SUBMENU (X de 590 a 740)
+                    if (mx > 590 && mx < 740 && my > 650 && my < 690) { itemFocado = null; subMenuItem = false; repaint(); }
                 }
                 if (mx > 1050 && mx < 1230 && my > 560 && my < 640) { menuItensAberto = false; itemFocado = null; subMenuItem = false; }
                 return;
@@ -677,9 +679,9 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
                 return;
             }
 
-            // BOTÃO DE EXAMINAR O INIMIGO
+            // BOTÃO DE EXAMINAR O INIMIGO MOVIDO PARA Y=640
             if (!escolhendoAlvo && !menuAtaqueAberto && !menuItensAberto && !menuStatusAberto && !examinandoAlvo) {
-                 if (mx > 20 && mx < 220 && my > 615 && my < 655) { examinandoAlvo = true; repaint(); return; }
+                 if (mx > 20 && mx < 200 && my > 640 && my < 680) { examinandoAlvo = true; repaint(); return; }
             }
 
             if (mx > 250 && mx < 430 && my > 560 && my < 640) menuAtaqueAberto = true; 
@@ -692,7 +694,7 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
             if (mx > 850 && mx < 1030 && my > 560 && my < 640) menuStatusAberto = true; 
             
             if (!p.tentouFugirNoAndar && mx > 1050 && mx < 1230 && my > 560 && my < 640) { 
-                p.fugiuDestaBatalha = true; p.tentouFugirNoAndar = true; p.fugiuNaUltima = true; // ADICIONADO PARA CORRIGIR O DEBUFF
+                p.fugiuDestaBatalha = true; p.tentouFugirNoAndar = true; p.fugiuNaUltima = true; 
                 addLog(p.nome + " fugiu! Pula a vez e -50% ATK depois!", () -> avancarTurno());
             }
         }
@@ -704,13 +706,20 @@ public class MotorGrafico extends JPanel implements ActionListener, MouseListene
                 }
                 if (subMenuItem && itemFocado != null) {
                     boolean isEquipado = (itemFocado == p.armaEquipada || itemFocado == p.armaduraEquipada);
+                    // USAR / EQUIPAR
                     if (mx > 250 && mx < 400 && my > 240 && my < 280) { 
                         if (itemFocado.tipo == 0) { p.status.hp = Math.min(p.status.hpMax, p.status.hp + itemFocado.poder); p.mochila.remove(itemFocado); }
                         else if (isEquipado) { if(itemFocado.tipo == 1 || itemFocado.tipo == 3) p.armaEquipada = null; else p.armaduraEquipada = null;}
                         else { if(itemFocado.tipo == 1 || itemFocado.tipo == 3) p.armaEquipada = itemFocado; else p.armaduraEquipada = itemFocado;}
                         subMenuItem=false; repaint();
                     }
-                    if (mx > 420 && mx < 570 && my > 240 && my < 280) { itemFocado = null; subMenuItem = false; repaint(); } 
+                    // DESCARTAR CORRIGIDO NA LOJA (X de 420 a 570)
+                    if (mx > 420 && mx < 570 && my > 240 && my < 280) { 
+                        if(isEquipado) { if(itemFocado.tipo == 1 || itemFocado.tipo == 3) p.armaEquipada = null; else p.armaduraEquipada = null; }
+                        p.mochila.remove(itemFocado); itemFocado = null; subMenuItem = false; repaint(); 
+                    }
+                    // CANCELAR SUBMENU (X de 590 a 740)
+                    if (mx > 590 && mx < 740 && my > 240 && my < 280) { itemFocado = null; subMenuItem = false; repaint(); } 
                 }
                 if (mx > 400 && mx < 600 && my > 320 && my < 380) { menuItensAberto = false; itemFocado = null; subMenuItem = false; }
                 return;
