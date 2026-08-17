@@ -5,7 +5,6 @@ import java.util.ArrayList;
 public abstract class HeroiGUI {
     String nome, passiva; Status status; ClasseRPG classe; Image sprite;
     
-    // VARIÁVEIS DE CONTROLE
     boolean fugiuNaUltima = false, fugiuDestaBatalha = false, skillUsadaNoAndar = false, tentouFugirNoAndar = false;
     
     ArrayList<Item> mochila = new ArrayList<>();
@@ -14,8 +13,12 @@ public abstract class HeroiGUI {
     public HeroiGUI(String nome, String passiva, Status base) { this.nome = nome; this.passiva = passiva; this.status = base; }
     public void setClasse(ClasseRPG novaClasse) { this.classe = novaClasse; }
     public abstract String aplicarPassivaTurno();
+    
+    // NOVA FUNÇÃO: Gerencia a vida e permite que as passivas evitem a morte
+    public void receberDano(int dano) {
+        this.status.hp -= dano;
+    }
 
-    // AGORA O ATAQUE RECEBE O TIPO (0 = Hardware, 1 = Software)
     public String atacarBasico(InimigoGUI alvo, int tipoAtk) {
         int d100 = new java.util.Random().nextInt(100) + 1;
         if (d100 <= 10) return nome + " ERROU o ataque!"; 
@@ -29,10 +32,10 @@ public abstract class HeroiGUI {
         int danoCausado;
         String nomeAtaque;
         
-        if (tipoAtk == 1) { // Escolheu atacar com Software
+        if (tipoAtk == 1) { 
             danoCausado = Math.max(1, (status.software + ataqueBonusSoft) - alvo.status.firewall);
             nomeAtaque = "Software";
-        } else { // Escolheu atacar com Hardware
+        } else { 
             danoCausado = Math.max(1, (status.hardware + ataqueBonusHard) - alvo.status.manutencao);
             nomeAtaque = "Hardware";
         }
@@ -61,6 +64,18 @@ class Lucas extends HeroiGUI {
 }
 
 class Elvis extends HeroiGUI {
-    public Elvis() { super("Elvis Almeida", "Limão com Mel: Sobrevive 0 HP", new Status(100, 20, 5, 15, 2)); }
+    boolean usouPassivaResurreicao = false; // Controle de 1 vez por Run
+    
+    public Elvis() { super("Elvis Almeida", "Limão com Mel: Sobrevive 0 HP (1x por Run)", new Status(100, 20, 5, 15, 2)); }
     @Override public String aplicarPassivaTurno() { return "Elvis: Limão com Mel Preparado!"; }
+    
+    // INTERCEPTA O DANO LETAL E SOBREVIVE COM 25% DE HP
+    @Override
+    public void receberDano(int dano) {
+        super.receberDano(dano); // Toma o dano normalmente
+        if (this.status.hp <= 0 && !usouPassivaResurreicao) {
+            this.status.hp = this.status.hpMax / 4; // Sobrevive com 25% do HP máximo
+            this.usouPassivaResurreicao = true;
+        }
+    }
 }
