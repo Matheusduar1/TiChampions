@@ -5,8 +5,7 @@ import java.util.Collections;
 import javax.swing.Timer;
 
 public class Mecanicas {
-    MotorGrafico m; // Referência aos dados centrais
-    
+    MotorGrafico m; 
     public Mecanicas(MotorGrafico m) { this.m = m; }
 
     public void addLog(String msg, Runnable proximaAcao) {
@@ -85,7 +84,11 @@ public class Mecanicas {
         if (vivos == 0) {
             m.turnoExtraLanHouse = false;
             if (fugiram > 0) addLog("Todos fugiram! Indo à Loja...", () -> { iniciarLoja(); m.estadoAtual = MotorGrafico.Estado.LOJA; });
-            else addLog("GAME OVER! A equipe foi derrotada.", () -> m.estadoAtual = MotorGrafico.Estado.GAME_OVER);
+            else {
+                GerenciadorAudio.pararMusica();
+                GerenciadorAudio.tocarEfeito(GerenciadorAudio.gameOver); // TOCA O GAME OVER
+                addLog("GAME OVER! A equipe foi derrotada.", () -> m.estadoAtual = MotorGrafico.Estado.GAME_OVER);
+            }
             return;
         }
 

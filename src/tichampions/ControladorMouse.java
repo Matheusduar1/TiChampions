@@ -41,7 +41,10 @@ public class ControladorMouse extends MouseAdapter {
         }
 
         if (m.estadoAtual == MotorGrafico.Estado.MENU) {
-            if (mx > 540 && mx < 740 && my > 380 && my < 440) m.estadoAtual = MotorGrafico.Estado.MODO_JOGO;
+            if (mx > 540 && mx < 740 && my > 380 && my < 440) {
+                GerenciadorAudio.tocarEfeito(GerenciadorAudio.start); // TOCA O START
+                m.estadoAtual = MotorGrafico.Estado.MODO_JOGO;
+            }
             if (mx > 540 && mx < 740 && my > 460 && my < 520) m.estadoAtual = MotorGrafico.Estado.OPCOES;
             if (mx > 540 && mx < 740 && my > 540 && my < 600) System.exit(0);
         }
@@ -84,11 +87,20 @@ public class ControladorMouse extends MouseAdapter {
                     case 4: heroiAtual.setClasse(new Professor()); break;
                 }
                 m.classeSelecionadaUI = -1;
-                if (m.party.size() >= m.qtdJogadores) m.mecanicas.gerarAndarDeCombate(); else m.estadoAtual = MotorGrafico.Estado.SELECAO_PERSONAGEM; 
+                if (m.party.size() >= m.qtdJogadores) {
+                    GerenciadorAudio.pararMusica(); // PARA A MÚSICA QUANDO ENTRA NA BATALHA
+                    m.mecanicas.gerarAndarDeCombate(); 
+                } else {
+                    m.estadoAtual = MotorGrafico.Estado.SELECAO_PERSONAGEM; 
+                }
             }
         }
         else if (m.estadoAtual == MotorGrafico.Estado.GAME_OVER) {
-            if (mx > 500 && mx < 780 && my > 500 && my < 560) { m.party.clear(); m.andarTotal = 1; m.batalhasSeguidas = 0; m.estadoAtual = MotorGrafico.Estado.MENU; }
+            if (mx > 500 && mx < 780 && my > 500 && my < 560) { 
+                m.party.clear(); m.andarTotal = 1; m.batalhasSeguidas = 0; 
+                m.estadoAtual = MotorGrafico.Estado.MENU; 
+                GerenciadorAudio.tocarMusica(GerenciadorAudio.title); // VOLTA A MÚSICA DO MENU
+            }
         }
         else if (m.estadoAtual == MotorGrafico.Estado.COMBATE && !m.turnoInimigo) {
             HeroiGUI p = m.party.get(m.jogadorTurnoAtual);

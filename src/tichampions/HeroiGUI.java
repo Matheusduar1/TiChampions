@@ -4,9 +4,7 @@ import java.util.ArrayList;
 
 public abstract class HeroiGUI {
     String nome, passiva; Status status; ClasseRPG classe; Image sprite;
-    
     boolean fugiuNaUltima = false, fugiuDestaBatalha = false, skillUsadaNoAndar = false, tentouFugirNoAndar = false;
-    
     ArrayList<Item> mochila = new ArrayList<>();
     Item armaEquipada = null, armaduraEquipada = null;
 
@@ -14,9 +12,9 @@ public abstract class HeroiGUI {
     public void setClasse(ClasseRPG novaClasse) { this.classe = novaClasse; }
     public abstract String aplicarPassivaTurno();
     
-    // NOVA FUNÇÃO: Gerencia a vida e permite que as passivas evitem a morte
     public void receberDano(int dano) {
         this.status.hp -= dano;
+        GerenciadorAudio.tocarEfeito(GerenciadorAudio.hurt); // TOCA SOM DE DANO
     }
 
     public String atacarBasico(InimigoGUI alvo, int tipoAtk) {
@@ -29,21 +27,19 @@ public abstract class HeroiGUI {
         int ataqueBonusHard = (armaEquipada != null && armaEquipada.tipo == 1) ? armaEquipada.poder : 0;
         int ataqueBonusSoft = (armaEquipada != null && armaEquipada.tipo == 3) ? armaEquipada.poder : 0;
         
-        int danoCausado;
-        String nomeAtaque;
-        
+        int danoCausado; String nomeAtaque;
         if (tipoAtk == 1) { 
-            danoCausado = Math.max(1, (status.software + ataqueBonusSoft) - alvo.status.firewall);
-            nomeAtaque = "Software";
+            danoCausado = Math.max(1, (status.software + ataqueBonusSoft) - alvo.status.firewall); nomeAtaque = "Software";
         } else { 
-            danoCausado = Math.max(1, (status.hardware + ataqueBonusHard) - alvo.status.manutencao);
-            nomeAtaque = "Hardware";
+            danoCausado = Math.max(1, (status.hardware + ataqueBonusHard) - alvo.status.manutencao); nomeAtaque = "Hardware";
         }
         
         if (fugiuNaUltima) danoCausado = danoCausado / 2; 
         if (crit) danoCausado *= 2;
 
         alvo.status.hp -= danoCausado; alvo.ativarPiscar(); 
+        GerenciadorAudio.tocarEfeito(GerenciadorAudio.hit); // TOCA SOM DE HIT
+        
         return nome + (crit ? " deu CRÍTICO ("+nomeAtaque+")! " : " atacou ("+nomeAtaque+")! ") + danoCausado + " dano!";
     }
 }
@@ -64,18 +60,17 @@ class Lucas extends HeroiGUI {
 }
 
 class Elvis extends HeroiGUI {
-    boolean usouPassivaResurreicao = false; // Controle de 1 vez por Run
-    
+    boolean usouPassivaResurreicao = false; 
     public Elvis() { super("Elvis Almeida", "Limão com Mel: Sobrevive 0 HP (1x por Run)", new Status(100, 20, 5, 15, 2)); }
     @Override public String aplicarPassivaTurno() { return "Elvis: Limão com Mel Preparado!"; }
     
-    // INTERCEPTA O DANO LETAL E SOBREVIVE COM 25% DE HP
     @Override
     public void receberDano(int dano) {
-        super.receberDano(dano); // Toma o dano normalmente
+        super.receberDano(dano); 
         if (this.status.hp <= 0 && !usouPassivaResurreicao) {
-            this.status.hp = this.status.hpMax / 4; // Sobrevive com 25% do HP máximo
+            this.status.hp = this.status.hpMax / 4; 
             this.usouPassivaResurreicao = true;
+            GerenciadorAudio.tocarEfeito(GerenciadorAudio.special); // TOCA SOM AO RESSUSCITAR
         }
     }
 }
