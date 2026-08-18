@@ -13,31 +13,31 @@ public class Recursos {
 
     public static void carregar() {
         try {
-            bgMenu = ImageIO.read(new File("sprites/backgrounds/bg_menu.png")); 
-            bgLoja = ImageIO.read(new File("sprites/backgrounds/bg_loja.png")); 
-            bgsCombate[0] = ImageIO.read(new File("sprites/backgrounds/bg_combate1.png"));
-            bgsCombate[1] = ImageIO.read(new File("sprites/backgrounds/bg_combate2.png"));
-            bgsCombate[2] = ImageIO.read(new File("sprites/backgrounds/bg_combate3.png"));
+            bgMenu = ImageIO.read(new File("src/sprites/backgrounds/bg_menu.png")); 
+            bgLoja = ImageIO.read(new File("src/sprites/backgrounds/bg_loja.png")); 
+            bgsCombate[0] = ImageIO.read(new File("src/sprites/backgrounds/bg_combate1.png"));
+            bgsCombate[1] = ImageIO.read(new File("src/sprites/backgrounds/bg_combate2.png"));
+            bgsCombate[2] = ImageIO.read(new File("src/sprites/backgrounds/bg_combate3.png"));
             
-            spriteMarcao = ImageIO.read(new File("sprites/npc/marcao.png")); 
-            spriteDiegao = ImageIO.read(new File("sprites/npc/diegao.png")); 
-            imgMatheus = ImageIO.read(new File("sprites/personagens/matheus.png")); 
-            imgLucas = ImageIO.read(new File("sprites/personagens/lucas.png")); 
-            imgElvis = ImageIO.read(new File("sprites/personagens/elvis.png"));
+            spriteMarcao = ImageIO.read(new File("src/sprites/npc/marcao.png")); 
+            spriteDiegao = ImageIO.read(new File("src/sprites/npc/diegao.png")); 
+            imgMatheus = ImageIO.read(new File("src/sprites/personagens/matheus.png")); 
+            imgLucas = ImageIO.read(new File("src/sprites/personagens/lucas.png")); 
+            imgElvis = ImageIO.read(new File("src/sprites/personagens/elvis.png"));
             
-            imgInimigos[0] = ImageIO.read(new File("sprites/inimigos/estagiario.png")); 
-            imgInimigos[1] = ImageIO.read(new File("sprites/inimigos/sql_injection.png"));
-            imgInimigos[2] = ImageIO.read(new File("sprites/inimigos/hardware_curto.png")); 
-            imgInimigos[3] = ImageIO.read(new File("sprites/inimigos/boss_arquiteto.png"));
+            imgInimigos[0] = ImageIO.read(new File("src/sprites/inimigos/estagiario.png")); 
+            imgInimigos[1] = ImageIO.read(new File("src/sprites/inimigos/sql_injection.png"));
+            imgInimigos[2] = ImageIO.read(new File("src/sprites/inimigos/hardware_curto.png")); 
+            imgInimigos[3] = ImageIO.read(new File("src/sprites/inimigos/boss_arquiteto.png"));
             
-            imgItens[0] = ImageIO.read(new File("sprites/itens/cafe.png")); 
-            imgItens[1] = ImageIO.read(new File("sprites/itens/placa_video.png"));
-            imgItens[2] = ImageIO.read(new File("sprites/itens/nobreak.png"));
-            imgItens[3] = ImageIO.read(new File("sprites/itens/ferro_solda.png"));
-            imgItens[4] = ImageIO.read(new File("sprites/itens/camisa_evento.png"));
-            imgItens[5] = ImageIO.read(new File("sprites/itens/memoria_enferrujada.png"));
+            imgItens[0] = ImageIO.read(new File("src/sprites/itens/cafe.png")); 
+            imgItens[1] = ImageIO.read(new File("src/sprites/itens/placa_video.png"));
+            imgItens[2] = ImageIO.read(new File("src/sprites/itens/nobreak.png"));
+            imgItens[3] = ImageIO.read(new File("src/sprites/itens/ferro_solda.png"));
+            imgItens[4] = ImageIO.read(new File("src/sprites/itens/camisa_evento.png"));
+            imgItens[5] = ImageIO.read(new File("src/sprites/itens/memoria_enferrujada.png"));
         } catch (Exception e) {
-            System.out.println("Erro ao carregar os recursos visuais!");
+            System.out.println("Erro ao carregar os recursos visuais. Verifique se a pasta sprites está dentro de src!");
         }
     }
 }
