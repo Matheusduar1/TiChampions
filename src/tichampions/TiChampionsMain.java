@@ -5,7 +5,7 @@ import javax.swing.SwingUtilities;
 public class TiChampionsMain {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame janela = new JFrame("TI Champions V5.0 - GUI Edition");
+            JFrame janela = new JFrame("TI Champions - Versao Final(Agora vai)");
             MotorGrafico motor = new MotorGrafico();
             janela.add(motor);
             janela.pack(); 
