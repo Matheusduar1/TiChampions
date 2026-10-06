@@ -44,18 +44,23 @@ public class Mecanicas {
         int mult = m.party.size();
         
         if (m.batalhasSeguidas >= 5) {
-            m.inimigos.add(new InimigoGUI(m.andarTotal, new Status((150*mult)+(m.andarTotal*10), (20*mult)+m.andarTotal, 0, 15*mult, 15*mult), 3, 0));
+            // BOSS ESCALONADO SUAVEMENTE (Menos hitkill, mais duradouro)
+            int hpBoss = (120 * mult) + (m.andarTotal * 20);
+            int atkBoss = 15 + (m.andarTotal * 4);
+            int defBoss = 5 + (m.andarTotal * 3);
+            m.inimigos.add(new InimigoGUI(m.andarTotal, new Status(hpBoss, atkBoss, atkBoss, defBoss, defBoss), 3, 0));
             m.batalhasSeguidas = 0;
         } else {
             int qInimigos = (m.rng.nextInt(100) < 10) ? m.party.size() + m.rng.nextInt(2) + 1 : m.party.size();
             for(int i=0; i < qInimigos; i++) {
                 int idSpr = m.rng.nextInt(3); int tAtaque = (idSpr == 1) ? 1 : 0; 
-                int hpIni = 50 + (m.andarTotal * 15);
-                int atkHard = 20 + (m.andarTotal * 4);
-                int atkSoft = 20 + (m.andarTotal * 4);
-                int defHard = 8 + (m.andarTotal * 2);
-                int defSoft = 8 + (m.andarTotal * 2);
-                m.inimigos.add(new InimigoGUI(m.andarTotal, new Status(hpIni, atkHard, atkSoft, defHard, defSoft), idSpr, tAtaque));
+                
+                // INIMIGOS NORMAIS: Curva justa de balanceamento.
+                int hpIni = 35 + (m.andarTotal * 12);
+                int atkIni = 10 + (m.andarTotal * 3);
+                int defIni = 2 + (m.andarTotal * 2);
+                
+                m.inimigos.add(new InimigoGUI(m.andarTotal, new Status(hpIni, atkIni, atkIni, defIni, defIni), idSpr, tAtaque));
             }
         }
         m.logBatalha.clear(); m.turnoExtraLanHouse = false;

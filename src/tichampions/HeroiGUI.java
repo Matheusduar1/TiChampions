@@ -9,12 +9,48 @@ public abstract class HeroiGUI {
     Item armaEquipada = null, armaduraEquipada = null;
 
     public HeroiGUI(String nome, String passiva, Status base) { this.nome = nome; this.passiva = passiva; this.status = base; }
-    public void setClasse(ClasseRPG novaClasse) { this.classe = novaClasse; }
+    
+    // O SEGREDO DO BALANCEAMENTO ACONTECE AQUI!
+    public void setClasse(ClasseRPG novaClasse) { 
+        this.classe = novaClasse; 
+        
+        // Aplica os bônus e ônus REAIS da classe nos status base do herói!
+        if (novaClasse instanceof HackerMan) {
+            this.status.software += 10; 
+            this.status.manutencao -= 5;
+        } 
+        else if (novaClasse instanceof Infra) {
+            this.status.hardware += 10; 
+            this.status.hpMax += 20; 
+            this.status.hp += 20;
+        } 
+        else if (novaClasse instanceof JavaChampion) {
+            this.status.manutencao += 10; 
+            this.status.firewall += 10; 
+            this.status.hardware -= 5;
+        } 
+        else if (novaClasse instanceof DonoLanHouse) {
+            this.status.hardware += 8; 
+            this.status.software -= 5;
+        } 
+        else if (novaClasse instanceof Professor) {
+            this.status.hpMax += 30; 
+            this.status.hp += 30; 
+            this.status.firewall += 5;
+        }
+        
+        // Garante que defesas/ataques não fiquem negativos (mínimo de 0)
+        if(this.status.manutencao < 0) this.status.manutencao = 0;
+        if(this.status.firewall < 0) this.status.firewall = 0;
+        if(this.status.hardware < 0) this.status.hardware = 0;
+        if(this.status.software < 0) this.status.software = 0;
+    }
+    
     public abstract String aplicarPassivaTurno();
     
     public void receberDano(int dano) {
         this.status.hp -= dano;
-        GerenciadorAudio.tocarEfeito(GerenciadorAudio.hurt); // TOCA SOM DE DANO
+        GerenciadorAudio.tocarEfeito(GerenciadorAudio.hurt); 
     }
 
     public String atacarBasico(InimigoGUI alvo, int tipoAtk) {
@@ -38,7 +74,7 @@ public abstract class HeroiGUI {
         if (crit) danoCausado *= 2;
 
         alvo.status.hp -= danoCausado; alvo.ativarPiscar(); 
-        GerenciadorAudio.tocarEfeito(GerenciadorAudio.hit); // TOCA SOM DE HIT
+        GerenciadorAudio.tocarEfeito(GerenciadorAudio.hit); 
         
         return nome + (crit ? " deu CRÍTICO ("+nomeAtaque+")! " : " atacou ("+nomeAtaque+")! ") + danoCausado + " dano!";
     }
@@ -70,7 +106,7 @@ class Elvis extends HeroiGUI {
         if (this.status.hp <= 0 && !usouPassivaResurreicao) {
             this.status.hp = this.status.hpMax / 4; 
             this.usouPassivaResurreicao = true;
-            GerenciadorAudio.tocarEfeito(GerenciadorAudio.special); // TOCA SOM AO RESSUSCITAR
+            GerenciadorAudio.tocarEfeito(GerenciadorAudio.special); 
         }
     }
 }
