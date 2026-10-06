@@ -86,7 +86,18 @@ public class Mecanicas {
             if (fugiram > 0) addLog("Todos fugiram! Indo à Loja...", () -> { iniciarLoja(); m.estadoAtual = MotorGrafico.Estado.LOJA; });
             else {
                 GerenciadorAudio.pararMusica();
-                GerenciadorAudio.tocarEfeito(GerenciadorAudio.gameOver); // TOCA O GAME OVER
+                GerenciadorAudio.tocarEfeito(GerenciadorAudio.gameOver); 
+                
+                // --- INTEGRAÇÃO COM O BANCO DE DADOS ---
+                StringBuilder nomeEquipe = new StringBuilder();
+                for(int i = 0; i < m.party.size(); i++) {
+                    nomeEquipe.append(m.party.get(i).nome.split(" ")[0]); // Extrai apenas o primeiro nome
+                    if(i < m.party.size() - 1) nomeEquipe.append(", ");
+                }
+                int totalBatalhas = (m.andarTotal - 1) * 5 + m.batalhasSeguidas;
+                RankingDAO.salvarPartida(nomeEquipe.toString(), m.andarTotal, totalBatalhas);
+                // ----------------------------------------
+
                 addLog("GAME OVER! A equipe foi derrotada.", () -> m.estadoAtual = MotorGrafico.Estado.GAME_OVER);
             }
             return;
