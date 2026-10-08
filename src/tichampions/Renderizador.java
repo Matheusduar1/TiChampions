@@ -72,10 +72,17 @@ public class Renderizador {
         g.setColor(new Color(0, 0, 0, 180)); g.drawString(titulo, titleX + 8, titleY + 8);
         g.setColor(Color.WHITE); g.drawString(titulo, titleX, titleY);
 
-        int btnY = 380; 
-        desenharBotaoHover(g, "INICIAR JOGO", 540, btnY, 200, 60, true); 
-        desenharBotaoHover(g, "OPÇÕES", 540, btnY + 80, 200, 60, true);
-        desenharBotaoHover(g, "SAIR", 540, btnY + 160, 200, 60, true);
+        int btnY = 320; 
+        desenharBotaoHover(g, "NOVO JOGO", 540, btnY, 200, 60, true); 
+        
+        if (SaveDAO.temSave()) {
+            desenharBotaoHover(g, "CONTINUAR JOGO", 540, btnY + 80, 200, 60, true);
+            desenharBotaoHover(g, "OPÇÕES", 540, btnY + 160, 200, 60, true);
+            desenharBotaoHover(g, "SAIR", 540, btnY + 240, 200, 60, true);
+        } else {
+            desenharBotaoHover(g, "OPÇÕES", 540, btnY + 80, 200, 60, true);
+            desenharBotaoHover(g, "SAIR", 540, btnY + 160, 200, 60, true);
+        }
     }
     
     private void desenharOpcoes(Graphics2D g) {
@@ -99,7 +106,7 @@ public class Renderizador {
             g.drawString("• SOFTWARE: Dano Mágico. A defesa contra ele é o seu Firewall.", 250, 290);
             g.drawString("• ITENS DA LOJA: Máx de 1 Arma, 1 Armadura e 1 Ativo na Mochila.", 250, 330);
             g.drawString("• CONSUMÍVEIS: Podem ser usados diretamente no menu Mochila.", 250, 370);
-            g.drawString("• FUGIR: Você pula o turno e perde -50% de Ataque. Fujões não vão na loja.", 250, 410);
+            g.drawString("• FUGIR: Você pula o turno e perde -50% de Ataque. (APENAS 1x POR RUN)", 250, 410);
             g.drawString("• PRECISÃO: Todos tem 10% de chance de errar e 10% de Crítico.", 250, 450);
             desenharBotaoHover(g, "FECHAR TUTORIAL", 500, 500, 280, 60, true);
         }
@@ -279,7 +286,8 @@ public class Renderizador {
                 desenharBotaoHover(g, "ATACAR", 250, 560, 180, 80, true); desenharBotaoHover(g, "MOCHILA", 450, 560, 180, 80, true);
                 if(!h.skillUsadaNoAndar) desenharBotaoHover(g, "SKILL", 650, 560, 180, 80, true); else { g.setColor(Color.DARK_GRAY); g.fillRect(650, 560, 180, 80); }
                 desenharBotaoHover(g, "STATUS", 850, 560, 180, 80, true); 
-                if(h.tentouFugirNoAndar) { g.setColor(Color.DARK_GRAY); g.fillRect(1050, 560, 180, 80); } 
+                
+                if(h.jaFugiuNestaRun) { g.setColor(Color.DARK_GRAY); g.fillRect(1050, 560, 180, 80); } 
                 else desenharBotaoHover(g, "FUGIR", 1050, 560, 180, 80, true);
             }
         }
@@ -321,6 +329,8 @@ public class Renderizador {
             desenharBotaoHover(g, txtProximo, 630, 600, 200, 60, true);
             
             if(m.party.size() > 1) desenharBotaoHover(g, "SAIR DA PARTY", 850, 600, 200, 60, true);
+            
+            desenharBotaoHover(g, "GUARDAR E SAIR", 1080, 600, 180, 60, true);
         } 
         else { g.drawString("Todos os Heróis aptos já agiram na loja!", 400, 560); }
         

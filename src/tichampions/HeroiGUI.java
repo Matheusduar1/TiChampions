@@ -4,17 +4,16 @@ import java.util.ArrayList;
 
 public abstract class HeroiGUI {
     String nome, passiva; Status status; ClasseRPG classe; Image sprite;
-    boolean fugiuNaUltima = false, fugiuDestaBatalha = false, skillUsadaNoAndar = false, tentouFugirNoAndar = false;
+    boolean fugiuNaUltima = false, fugiuDestaBatalha = false, skillUsadaNoAndar = false;
+    boolean jaFugiuNestaRun = false; // NOVA VARIÁVEL
     ArrayList<Item> mochila = new ArrayList<>();
     Item armaEquipada = null, armaduraEquipada = null;
 
     public HeroiGUI(String nome, String passiva, Status base) { this.nome = nome; this.passiva = passiva; this.status = base; }
     
-    // O SEGREDO DO BALANCEAMENTO ACONTECE AQUI!
     public void setClasse(ClasseRPG novaClasse) { 
         this.classe = novaClasse; 
         
-        // Aplica os bônus e ônus REAIS da classe nos status base do herói!
         if (novaClasse instanceof HackerMan) {
             this.status.software += 10; 
             this.status.manutencao -= 5;
@@ -39,7 +38,6 @@ public abstract class HeroiGUI {
             this.status.firewall += 5;
         }
         
-        // Garante que defesas/ataques não fiquem negativos (mínimo de 0)
         if(this.status.manutencao < 0) this.status.manutencao = 0;
         if(this.status.firewall < 0) this.status.firewall = 0;
         if(this.status.hardware < 0) this.status.hardware = 0;

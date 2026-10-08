@@ -44,7 +44,6 @@ public class Mecanicas {
         int mult = m.party.size();
         
         if (m.batalhasSeguidas >= 5) {
-            // BOSS ESCALONADO SUAVEMENTE (Menos hitkill, mais duradouro)
             int hpBoss = (120 * mult) + (m.andarTotal * 20);
             int atkBoss = 15 + (m.andarTotal * 4);
             int defBoss = 5 + (m.andarTotal * 3);
@@ -55,7 +54,6 @@ public class Mecanicas {
             for(int i=0; i < qInimigos; i++) {
                 int idSpr = m.rng.nextInt(3); int tAtaque = (idSpr == 1) ? 1 : 0; 
                 
-                // INIMIGOS NORMAIS: Curva justa de balanceamento.
                 int hpIni = 35 + (m.andarTotal * 12);
                 int atkIni = 10 + (m.andarTotal * 3);
                 int defIni = 2 + (m.andarTotal * 2);
@@ -63,9 +61,11 @@ public class Mecanicas {
                 m.inimigos.add(new InimigoGUI(m.andarTotal, new Status(hpIni, atkIni, atkIni, defIni, defIni), idSpr, tAtaque));
             }
         }
+        
         m.logBatalha.clear(); m.turnoExtraLanHouse = false;
         for(HeroiGUI h : m.party) { 
-            h.skillUsadaNoAndar = false; h.fugiuDestaBatalha = false; h.tentouFugirNoAndar = false; 
+            h.skillUsadaNoAndar = false; 
+            h.fugiuDestaBatalha = false; 
             m.logBatalha.add(h.aplicarPassivaTurno()); 
         }
         m.jogadorTurnoAtual = 0; m.turnoInimigo = false; m.estadoAtual = MotorGrafico.Estado.COMBATE; verificarTurnoValido();
@@ -93,15 +93,16 @@ public class Mecanicas {
                 GerenciadorAudio.pararMusica();
                 GerenciadorAudio.tocarEfeito(GerenciadorAudio.gameOver); 
                 
-                // --- INTEGRAÇÃO COM O BANCO DE DADOS ---
                 StringBuilder nomeEquipe = new StringBuilder();
                 for(int i = 0; i < m.party.size(); i++) {
-                    nomeEquipe.append(m.party.get(i).nome.split(" ")[0]); // Extrai apenas o primeiro nome
+                    nomeEquipe.append(m.party.get(i).nome.split(" ")[0]);
                     if(i < m.party.size() - 1) nomeEquipe.append(", ");
                 }
                 int totalBatalhas = (m.andarTotal - 1) * 5 + m.batalhasSeguidas;
                 RankingDAO.salvarPartida(nomeEquipe.toString(), m.andarTotal, totalBatalhas);
-                // ----------------------------------------
+                
+                // MUDANÇA AQUI: Apaga o Save State se houver Game Over
+                SaveDAO.deletarSave();
 
                 addLog("GAME OVER! A equipe foi derrotada.", () -> m.estadoAtual = MotorGrafico.Estado.GAME_OVER);
             }
