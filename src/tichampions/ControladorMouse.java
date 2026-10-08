@@ -41,12 +41,34 @@ public class ControladorMouse extends MouseAdapter {
         }
 
         if (m.estadoAtual == MotorGrafico.Estado.MENU) {
-            if (mx > 540 && mx < 740 && my > 380 && my < 440) {
-                GerenciadorAudio.tocarEfeito(GerenciadorAudio.start); // TOCA O START
+            int btnY = 320;
+            
+            // LÓGICA REFEITA DO NOVO JOGO PARA LIMPAR TUDO
+            if (mx > 540 && mx < 740 && my > btnY && my < btnY + 60) {
+                GerenciadorAudio.tocarEfeito(GerenciadorAudio.start); 
+                
+                m.party.clear(); 
+                m.andarTotal = 1; 
+                m.batalhasSeguidas = 0; 
+                m.lojaLendaria = false;
+                m.logBatalha.clear();
+                
+                SaveDAO.deletarSave(); // Apaga o save da DB para não misturar os dados
                 m.estadoAtual = MotorGrafico.Estado.MODO_JOGO;
             }
-            if (mx > 540 && mx < 740 && my > 460 && my < 520) m.estadoAtual = MotorGrafico.Estado.OPCOES;
-            if (mx > 540 && mx < 740 && my > 540 && my < 600) System.exit(0);
+            
+            if (SaveDAO.temSave()) {
+                if (mx > 540 && mx < 740 && my > btnY + 80 && my < btnY + 140) {
+                    GerenciadorAudio.tocarEfeito(GerenciadorAudio.start);
+                    GerenciadorAudio.pararMusica(); 
+                    SaveDAO.carregarEstado(m);      
+                }
+                if (mx > 540 && mx < 740 && my > btnY + 160 && my < btnY + 220) m.estadoAtual = MotorGrafico.Estado.OPCOES;
+                if (mx > 540 && mx < 740 && my > btnY + 240 && my < btnY + 300) System.exit(0);
+            } else {
+                if (mx > 540 && mx < 740 && my > btnY + 80 && my < btnY + 140) m.estadoAtual = MotorGrafico.Estado.OPCOES;
+                if (mx > 540 && mx < 740 && my > btnY + 160 && my < btnY + 220) System.exit(0);
+            }
         }
         else if (m.estadoAtual == MotorGrafico.Estado.MODO_JOGO) {
             if (mx > 20 && mx < 170 && my > 640 && my < 680) { m.estadoAtual = MotorGrafico.Estado.MENU; } 
@@ -88,7 +110,7 @@ public class ControladorMouse extends MouseAdapter {
                 }
                 m.classeSelecionadaUI = -1;
                 if (m.party.size() >= m.qtdJogadores) {
-                    GerenciadorAudio.pararMusica(); // PARA A MÚSICA QUANDO ENTRA NA BATALHA
+                    GerenciadorAudio.pararMusica(); 
                     m.mecanicas.gerarAndarDeCombate(); 
                 } else {
                     m.estadoAtual = MotorGrafico.Estado.SELECAO_PERSONAGEM; 
@@ -99,7 +121,7 @@ public class ControladorMouse extends MouseAdapter {
             if (mx > 500 && mx < 780 && my > 500 && my < 560) { 
                 m.party.clear(); m.andarTotal = 1; m.batalhasSeguidas = 0; 
                 m.estadoAtual = MotorGrafico.Estado.MENU; 
-                GerenciadorAudio.tocarMusica(GerenciadorAudio.title); // VOLTA A MÚSICA DO MENU
+                GerenciadorAudio.tocarMusica(GerenciadorAudio.title);
             }
         }
         else if (m.estadoAtual == MotorGrafico.Estado.COMBATE && !m.turnoInimigo) {
@@ -176,9 +198,12 @@ public class ControladorMouse extends MouseAdapter {
             }
             if (mx > 850 && mx < 1030 && my > 560 && my < 640) m.menuStatusAberto = true; 
             
-            if (!p.tentouFugirNoAndar && mx > 1050 && mx < 1230 && my > 560 && my < 640) { 
-                p.fugiuDestaBatalha = true; p.tentouFugirNoAndar = true; p.fugiuNaUltima = true; 
-                m.mecanicas.addLog(p.nome + " fugiu! Pula a vez e -50% ATK depois!", () -> m.mecanicas.avancarTurno());
+            // ATUALIZADA A LÓGICA DE FUGIR: Só permite se p.jaFugiuNestaRun for false
+            if (!p.jaFugiuNestaRun && mx > 1050 && mx < 1230 && my > 560 && my < 640) { 
+                p.fugiuDestaBatalha = true; 
+                p.jaFugiuNestaRun = true; 
+                p.fugiuNaUltima = true; 
+                m.mecanicas.addLog(p.nome + " fugiu! Nunca mais poderá fugir nesta Run!", () -> m.mecanicas.avancarTurno());
             }
         }
         else if (m.estadoAtual == MotorGrafico.Estado.LOJA) {
@@ -230,6 +255,16 @@ public class ControladorMouse extends MouseAdapter {
                         m.mecanicas.gerarAndarDeCombate();
                     }
                     return; 
+                }
+                
+                if (mx > 1080 && mx < 1260 && my > 600 && my < 660) {
+                    SaveDAO.salvarEstado(m);
+                    m.mecanicas.addLog("Progresso Guardado! A sair...", () -> {
+                        m.party.clear(); m.andarTotal = 1; m.batalhasSeguidas = 0;
+                        m.estadoAtual = MotorGrafico.Estado.MENU;
+                        GerenciadorAudio.tocarMusica(GerenciadorAudio.title);
+                    });
+                    return;
                 }
 
                 if(!pAtual.fugiuDestaBatalha && !m.comprouItemLoja) {
