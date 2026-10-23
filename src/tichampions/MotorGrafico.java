@@ -33,7 +33,8 @@ public class MotorGrafico extends JPanel implements ActionListener {
     ArrayList<String> logBatalha = new ArrayList<>();
     Timer timerEsperaAcao; boolean bloqueiaClique = false;
 
-    int andarTotal = 1, batalhasSeguidas = 0; boolean lojaLendaria = false;
+    int andarTotal = 1, batalhasSeguidas = 0, bossIndex = 0; boolean lojaLendaria = false;
+    boolean temSaveCache = false;
     Random rng = new Random();
 
     Item[] itensLojaAtual = new Item[3];
@@ -50,8 +51,13 @@ public class MotorGrafico extends JPanel implements ActionListener {
         Recursos.carregar();
         GerenciadorAudio.carregar(); // CARREGA OS SONS
         GerenciadorAudio.tocarMusica(GerenciadorAudio.title); // INICIA A MÚSICA DO MENU
+        atualizarStatusSave();
         
         timerGameLoop = new Timer(16, this); timerGameLoop.start();
+    }
+
+    public void atualizarStatusSave() {
+        temSaveCache = SaveDAO.temSave();
     }
 
     @Override

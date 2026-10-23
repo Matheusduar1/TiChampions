@@ -50,14 +50,17 @@ public class ControladorMouse extends MouseAdapter {
                 m.party.clear(); 
                 m.andarTotal = 1; 
                 m.batalhasSeguidas = 0; 
+                m.bossIndex = 0;
                 m.lojaLendaria = false;
                 m.logBatalha.clear();
                 
                 SaveDAO.deletarSave(); // Apaga o save da DB para não misturar os dados
+                m.atualizarStatusSave();
                 m.estadoAtual = MotorGrafico.Estado.MODO_JOGO;
+                return;
             }
             
-            if (SaveDAO.temSave()) {
+            if (m.temSaveCache) {
                 if (mx > 540 && mx < 740 && my > btnY + 80 && my < btnY + 140) {
                     GerenciadorAudio.tocarEfeito(GerenciadorAudio.start);
                     GerenciadorAudio.pararMusica(); 
@@ -259,8 +262,9 @@ public class ControladorMouse extends MouseAdapter {
                 
                 if (mx > 1080 && mx < 1260 && my > 600 && my < 660) {
                     SaveDAO.salvarEstado(m);
+                    m.atualizarStatusSave();
                     m.mecanicas.addLog("Progresso Guardado! A sair...", () -> {
-                        m.party.clear(); m.andarTotal = 1; m.batalhasSeguidas = 0;
+                        m.party.clear(); m.andarTotal = 1; m.batalhasSeguidas = 0; m.bossIndex = 0;
                         m.estadoAtual = MotorGrafico.Estado.MENU;
                         GerenciadorAudio.tocarMusica(GerenciadorAudio.title);
                     });

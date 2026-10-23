@@ -47,12 +47,20 @@ public class Mecanicas {
             int hpBoss = (120 * mult) + (m.andarTotal * 20);
             int atkBoss = 15 + (m.andarTotal * 4);
             int defBoss = 5 + (m.andarTotal * 3);
-            m.inimigos.add(new InimigoGUI(m.andarTotal, new Status(hpBoss, atkBoss, atkBoss, defBoss, defBoss), 3, 0));
+            
+            // Alterna entre os 3 bosses: 6 (Arquiteto), 7 (BSOD), 8 (WannaCry)
+            int bossSprite = 6 + (m.bossIndex % 3);
+            int tipoAtkBoss = (bossSprite == 6) ? 0 : 1; // Arquiteto = Hardware, BSOD e WannaCry = Software
+            m.bossIndex++;
+            
+            m.inimigos.add(new InimigoGUI(m.andarTotal, new Status(hpBoss, atkBoss, atkBoss, defBoss, defBoss), bossSprite, tipoAtkBoss));
             m.batalhasSeguidas = 0;
         } else {
             int qInimigos = (m.rng.nextInt(100) < 10) ? m.party.size() + m.rng.nextInt(2) + 1 : m.party.size();
             for(int i=0; i < qInimigos; i++) {
-                int idSpr = m.rng.nextInt(3); int tAtaque = (idSpr == 1) ? 1 : 0; 
+                // Sorteia entre os 6 inimigos normais (0 a 5)
+                int idSpr = m.rng.nextInt(6); 
+                int tAtaque = (idSpr == 1 || idSpr == 3 || idSpr == 4) ? 1 : 0; 
                 
                 int hpIni = 35 + (m.andarTotal * 12);
                 int atkIni = 10 + (m.andarTotal * 3);
@@ -103,6 +111,7 @@ public class Mecanicas {
                 
                 // MUDANÇA AQUI: Apaga o Save State se houver Game Over
                 SaveDAO.deletarSave();
+                m.atualizarStatusSave();
 
                 addLog("GAME OVER! A equipe foi derrotada.", () -> m.estadoAtual = MotorGrafico.Estado.GAME_OVER);
             }
