@@ -75,7 +75,7 @@ public class Renderizador {
         int btnY = 320; 
         desenharBotaoHover(g, "NOVO JOGO", 540, btnY, 200, 60, true); 
         
-        if (SaveDAO.temSave()) {
+        if (m.temSaveCache) {
             desenharBotaoHover(g, "CONTINUAR JOGO", 540, btnY + 80, 200, 60, true);
             desenharBotaoHover(g, "OPÇÕES", 540, btnY + 160, 200, 60, true);
             desenharBotaoHover(g, "SAIR", 540, btnY + 240, 200, 60, true);
@@ -182,10 +182,15 @@ public class Renderizador {
 
     private void desenharLogLateral(Graphics2D g) {
         if(m.logBatalha.isEmpty()) return;
-        g.setColor(new Color(0, 0, 0, 200)); g.fillRect(800, 50, 460, 160);
-        g.setColor(Color.WHITE); g.drawRect(800, 50, 460, 160); g.setFont(new Font("Arial", Font.PLAIN, 12)); 
-        int yText = 75;
-        for(String msg : m.logBatalha) { g.drawString("> " + msg, 810, yText); yText += 25; }
+        int logX = 10, logY = 395, logW = 340, logH = 115;
+        g.setColor(new Color(0, 0, 0, 200)); g.fillRect(logX, logY, logW, logH);
+        g.setColor(new Color(200, 200, 200, 180)); g.setStroke(new BasicStroke(1)); g.drawRect(logX, logY, logW, logH);
+        g.setColor(Color.WHITE); g.setFont(new Font("Arial", Font.PLAIN, 11)); 
+        int yText = logY + 20;
+        for(String msg : m.logBatalha) { 
+            g.drawString("> " + msg, logX + 8, yText); 
+            yText += 20; 
+        }
     }
 
     private void desenharCombate(Graphics2D g) {

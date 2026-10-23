@@ -6,11 +6,18 @@ public class InimigoGUI {
     
     public InimigoGUI(int level, Status base, int spriteId, int tipoAtaque) { 
         this.status = base; this.spriteId = spriteId; this.tipoAtaque = tipoAtaque;
-        if(spriteId == 0) this.nome = "Estagiário Lv." + level;
-        else if(spriteId == 1) this.nome = "SQL Injection Lv." + level;
-        else if(spriteId == 2) this.nome = "Hardware Curto Lv." + level;
-        else if(spriteId == 3) this.nome = "BOSS Arquiteto";
-        else this.nome = "Bug Lv." + level;
+        switch (spriteId) {
+            case 0: this.nome = "Estagiário Lv." + level; break;
+            case 1: this.nome = "SQL Injection Lv." + level; break;
+            case 2: this.nome = "Hardware Curto Lv." + level; break;
+            case 3: this.nome = "Cavalo de Troia Lv." + level; break;
+            case 4: this.nome = "Criptominerador Lv." + level; break;
+            case 5: this.nome = "Gabinete Assombrado Lv." + level; break;
+            case 6: this.nome = "BOSS Arquiteto"; break;
+            case 7: this.nome = "BOSS Tela Azul (BSOD)"; break;
+            case 8: this.nome = "BOSS WannaCry"; break;
+            default: this.nome = "Bug Lv." + level; break;
+        }
     }
     public void ativarPiscar() { this.timerPiscar = 30; } 
     public void ativarAtaqueAnim() { this.timerAtacar = 15; }

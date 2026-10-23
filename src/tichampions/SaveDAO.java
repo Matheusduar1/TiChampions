@@ -70,9 +70,12 @@ public class SaveDAO {
                     ResultSet rs = stmt.getGeneratedKeys();
                     if (rs.next()) {
                         int idHeroi = rs.getInt(1);
-                        for (Item item : h.mochila) salvarItemDB(conn, sqlItem, idHeroi, item, 0);
-                        if (h.armaEquipada != null) salvarItemDB(conn, sqlItem, idHeroi, h.armaEquipada, 1);
-                        if (h.armaduraEquipada != null) salvarItemDB(conn, sqlItem, idHeroi, h.armaduraEquipada, 2);
+                        for (Item item : h.mochila) {
+                            int statusUso = 0;
+                            if (item == h.armaEquipada) statusUso = 1;
+                            else if (item == h.armaduraEquipada) statusUso = 2;
+                            salvarItemDB(conn, sqlItem, idHeroi, item, statusUso);
+                        }
                     }
                 }
             }
@@ -106,6 +109,7 @@ public class SaveDAO {
                     m.andarTotal = rs.getInt("andar_total");
                     m.batalhasSeguidas = rs.getInt("batalhas_seguidas");
                     m.qtdJogadores = rs.getInt("qtd_jogadores");
+                    m.bossIndex = (m.andarTotal - 1) / 5;
                 }
             }
 
@@ -156,8 +160,8 @@ public class SaveDAO {
                         getIconeByName(rs.getString("nome_item"))
                     );
                     int uso = rs.getInt("status_uso");
-                    if (uso == 0) h.mochila.add(item);
-                    else if (uso == 1) h.armaEquipada = item;
+                    h.mochila.add(item);
+                    if (uso == 1) h.armaEquipada = item;
                     else if (uso == 2) h.armaduraEquipada = item;
                 }
             }

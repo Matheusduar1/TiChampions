@@ -13,7 +13,8 @@ class HackerMan extends ClasseRPG {
     public HackerMan() { super("HackerMan", "+10 Software, -5 Manutenção", "DDOS: Dano Software em Área"); }
     @Override public String usarSkill(HeroiGUI heroi, ArrayList<InimigoGUI> inimigos) {
         GerenciadorAudio.tocarEfeito(GerenciadorAudio.special);
-        for(InimigoGUI ini : inimigos) { ini.status.hp -= (heroi.status.software * 2); ini.ativarPiscar(); }
+        int bonusSoft = (heroi.armaEquipada != null && heroi.armaEquipada.tipo == 3) ? heroi.armaEquipada.poder : 0;
+        for(InimigoGUI ini : inimigos) { ini.status.hp -= ((heroi.status.software + bonusSoft) * 2); ini.ativarPiscar(); }
         return heroi.nome + " usou DDOS! Dano em Área!";
     }
 }
@@ -23,7 +24,8 @@ class Infra extends ClasseRPG {
     @Override public String usarSkill(HeroiGUI heroi, ArrayList<InimigoGUI> inimigos) {
         GerenciadorAudio.tocarEfeito(GerenciadorAudio.special);
         heroi.receberDano(15); 
-        inimigos.get(0).status.hp -= (heroi.status.hardware * 3) + 20;
+        int bonusHard = (heroi.armaEquipada != null && heroi.armaEquipada.tipo == 1) ? heroi.armaEquipada.poder : 0;
+        inimigos.get(0).status.hp -= ((heroi.status.hardware + bonusHard) * 3) + 20;
         inimigos.get(0).ativarPiscar();
         return heroi.nome + " usou Sobrecarga! Perdeu 15 HP!";
     }
@@ -42,7 +44,8 @@ class DonoLanHouse extends ClasseRPG {
     public DonoLanHouse() { super("Dono de LanHouse", "+8 Hardware, -5 Software", "+1 Ficha: Dano Crítico e +1 Turno"); }
     @Override public String usarSkill(HeroiGUI heroi, ArrayList<InimigoGUI> inimigos) {
         GerenciadorAudio.tocarEfeito(GerenciadorAudio.special);
-        inimigos.get(0).status.hp -= (heroi.status.hardware * 4); // Reduzido o multiplicador de 5 para 4 (estava roubado contra boss)
+        int bonusHard = (heroi.armaEquipada != null && heroi.armaEquipada.tipo == 1) ? heroi.armaEquipada.poder : 0;
+        inimigos.get(0).status.hp -= ((heroi.status.hardware + bonusHard) * 4); // Reduzido o multiplicador de 5 para 4 (estava roubado contra boss)
         inimigos.get(0).ativarPiscar();
         return heroi.nome + " colocou +1 Ficha! Dano Crítico!";
     }

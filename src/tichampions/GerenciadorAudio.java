@@ -8,19 +8,25 @@ public class GerenciadorAudio {
     private static Clip musicaAtual;
 
     public static void carregar() {
-        title = carregarClip("src/audios/Title.wav");
-        hit = carregarClip("src/audios/Hit.wav");
-        hurt = carregarClip("src/audios/Hurt.wav");
-        special = carregarClip("src/audios/Special.wav");
-        gameOver = carregarClip("src/audios/GameOver.wav");
-        start = carregarClip("src/audios/Start.wav");
+        title = carregarClip("audios/Title.wav");
+        hit = carregarClip("audios/Hit.wav");
+        hurt = carregarClip("audios/Hurt.wav");
+        special = carregarClip("audios/Special.wav");
+        gameOver = carregarClip("audios/GameOver.wav");
+        start = carregarClip("audios/Start.wav");
     }
 
     private static Clip carregarClip(String caminho) {
         try {
-            File arquivo = new File(caminho);
+            File arquivo = new File("src/" + caminho);
+            AudioInputStream ais = null;
             if (arquivo.exists()) {
-                AudioInputStream ais = AudioSystem.getAudioInputStream(arquivo);
+                ais = AudioSystem.getAudioInputStream(arquivo);
+            } else {
+                java.net.URL url = GerenciadorAudio.class.getResource("/" + caminho);
+                if (url != null) ais = AudioSystem.getAudioInputStream(url);
+            }
+            if (ais != null) {
                 Clip clip = AudioSystem.getClip();
                 clip.open(ais);
                 return clip;
